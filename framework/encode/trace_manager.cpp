@@ -32,6 +32,16 @@ std::unordered_map<uint64_t, uint32_t>                 TraceManager::ThreadData:
 TraceManager*                                          TraceManager::instance_ = nullptr;
 thread_local std::unique_ptr<TraceManager::ThreadData> TraceManager::thread_data_;
 
+// Array of API call block types, designed to be indexed by the TraceManager::ApiCallBlockType values.
+const format::BlockType kBlockTypes[] = { format::BlockType::kFunctionCallBlock,
+                                          format::BlockType::kFunctionCallPreBlock,
+                                          format::BlockType::kFunctionCallPostBlock };
+
+// Array of compressed API call block types, designed to be indexed by the TraceManager::ApiCallBlockType values.
+const format::BlockType kCompressedBlockTypes[] = { format::BlockType::kCompressedFunctionCallBlock,
+                                                    format::BlockType::kCompressedFunctionCallPreBlock,
+                                                    format::BlockType::kCompressedFunctionCallPostBlock };
+
 TraceManager::ThreadData::ThreadData() :
     thread_id_(GetThreadId()), call_id_(format::ApiCallId::ApiCall_Unknown), call_begin_time_(0), call_end_time_(0)
 {
@@ -125,10 +135,15 @@ bool TraceManager::Initialize(std::string filename, format::EnabledOptions file_
     return success;
 }
 
-ParameterEncoder* TraceManager::BeginApiCallTrace(format::ApiCallId call_id)
+ParameterEncoder* TraceManager::BeginApiCallTrace(format::ApiCallId call_id, ApiCallBlockType block_type)
 {
-    auto thread_data      = GetThreadData();
-    thread_data->call_id_ = call_id;
+    auto thread_data = GetThreadData();
+
+    // TODO: These values were initially intended to be processed at begin time, but because that is not happening, they
+    // can be moved to the end trace call.
+    thread_data->call_id_    = call_id;
+    thread_data->block_type_ = block_type;
+
     return thread_data->parameter_encoder_.get();
 }
 
@@ -163,7 +178,7 @@ void TraceManager::EndApiCallTrace(ParameterEncoder* encoder)
             header_pointer = reinterpret_cast<const void*>(&compressed_header);
             header_size    = sizeof(format::CompressedFunctionCallHeader);
 
-            compressed_header.block_header.type = format::BlockType::kCompressedFunctionCallBlock;
+            compressed_header.block_header.type = kCompressedBlockTypes[thread_data->block_type_];
             compressed_header.api_call_id       = thread_data->call_id_;
             compressed_header.uncompressed_size = uncompressed_size;
 
@@ -191,7 +206,7 @@ void TraceManager::EndApiCallTrace(ParameterEncoder* encoder)
         header_pointer     = reinterpret_cast<const void*>(&uncompressed_header);
         header_size        = sizeof(format::FunctionCallHeader);
 
-        uncompressed_header.block_header.type = format::BlockType::kFunctionCallBlock;
+        uncompressed_header.block_header.type = kBlockTypes[thread_data->block_type_];
         uncompressed_header.api_call_id       = thread_data->call_id_;
 
         packet_size += sizeof(uncompressed_header.api_call_id) + data_size;

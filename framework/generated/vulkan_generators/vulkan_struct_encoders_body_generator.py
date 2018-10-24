@@ -102,7 +102,7 @@ class VulkanStructEncodersBodyGenerator(BaseGenerator):
             if 'pNext' in value.name:
                 body += '    encode_pnext_struct(encoder, {});\n'.format(prefix + value.name)
             else:
-                methodCall = self.makeEncoderMethodCall(value, values, prefix)
+                methodCall = self.makeEncoderMethodCall(value, values, prefix, False)
                 body += '    {};\n'.format(methodCall)
 
         return body

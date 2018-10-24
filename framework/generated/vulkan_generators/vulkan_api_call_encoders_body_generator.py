@@ -165,6 +165,26 @@ class VulkanApiCallEncodersBodyGenerator(BaseGenerator):
             body += indent + 'std::lock_guard<std::mutex> create_destroy_lock(g_create_destroy_mutex);\n'
             body += '\n'
 
+        body += indent + 'auto encoder = encode::TraceManager::Get()->BeginApiCallTrace(format::ApiCallId::ApiCall_{}, encode::TraceManager::PreCall);\n'.format(name)
+        body += indent + 'if (encoder)\n'
+        body += indent + '{\n'
+        indent += ' ' * self.INDENT_SIZE
+
+        for value in values:
+            # For outpur parameters (eg. pointers and arrays) we do need to record that the value is or is not NULL and the array size,
+            # but we can omit the data pointed to.
+            omitData = False
+            if self.isOutputParameter(value, values) and not self.isInputOutputParameter(value, values):
+                omitData = True
+            methodCall = self.makeEncoderMethodCall(value, values, '', omitData)
+            body += indent + '{};\n'.format(methodCall)
+
+        body += indent + 'encode::TraceManager::Get()->EndApiCallTrace(encoder);\n'
+        indent = indent[0:-self.INDENT_SIZE]
+        body += indent + '}\n'
+
+        body += '\n'
+
         # Construct the function call to dispatch to the next layer.
         callExpr = self.makeLayerDispatchCall(name, values, argList)
         if returnType and returnType != 'void':
@@ -176,14 +196,15 @@ class VulkanApiCallEncodersBodyGenerator(BaseGenerator):
             body += indent + '{};\n'.format(callExpr)
 
         body += '\n'
-        body += indent + 'auto encoder = encode::TraceManager::Get()->BeginApiCallTrace(format::ApiCallId::ApiCall_{});\n'.format(name)
+        body += indent + 'encoder = encode::TraceManager::Get()->BeginApiCallTrace(format::ApiCallId::ApiCall_{}, encode::TraceManager::PostCall);\n'.format(name)
         body += indent + 'if (encoder)\n'
         body += indent + '{\n'
         indent += ' ' * self.INDENT_SIZE
 
         for value in values:
-            methodCall = self.makeEncoderMethodCall(value, values, '')
-            body += indent + '{};\n'.format(methodCall)
+            if self.isOutputParameter(value, values):
+                methodCall = self.makeEncoderMethodCall(value, values, '', False)
+                body += indent + '{};\n'.format(methodCall)
 
         if returnType and returnType != 'void':
             body += indent + 'encoder->EncodeEnumValue(result);\n'
@@ -206,4 +227,13 @@ class VulkanApiCallEncodersBodyGenerator(BaseGenerator):
 
         return body
 
+    def isOutputParameter(self, value, values):
+        # Check for an output pointer/array or an in-out pointer.
+        if (value.isPointer or value.isArray) and not self.isInputPointer(value):
+            return True
+        return False
 
+    def isInputOutputParameter(self, value, values):
+        if value.isPointer and self.isArrayLen(value, values):
+            return True
+        return False

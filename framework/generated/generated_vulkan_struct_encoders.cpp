@@ -37,9 +37,9 @@ void encode_struct(ParameterEncoder* encoder, const VkApplicationInfo& value)
 {
     encoder->EncodeEnumValue(value.sType);
     encode_pnext_struct(encoder, value.pNext);
-    encoder->EncodeString(value.pApplicationName);
+    encoder->EncodeString(value.pApplicationName, false);
     encoder->EncodeUInt32Value(value.applicationVersion);
-    encoder->EncodeString(value.pEngineName);
+    encoder->EncodeString(value.pEngineName, false);
     encoder->EncodeUInt32Value(value.engineVersion);
     encoder->EncodeUInt32Value(value.apiVersion);
 }
@@ -49,11 +49,11 @@ void encode_struct(ParameterEncoder* encoder, const VkInstanceCreateInfo& value)
     encoder->EncodeEnumValue(value.sType);
     encode_pnext_struct(encoder, value.pNext);
     encoder->EncodeFlagsValue(value.flags);
-    encode_struct_ptr(encoder, value.pApplicationInfo);
+    encode_struct_ptr(encoder, value.pApplicationInfo, false);
     encoder->EncodeUInt32Value(value.enabledLayerCount);
-    encoder->EncodeStringArray(value.ppEnabledLayerNames, value.enabledLayerCount);
+    encoder->EncodeStringArray(value.ppEnabledLayerNames, value.enabledLayerCount, false);
     encoder->EncodeUInt32Value(value.enabledExtensionCount);
-    encoder->EncodeStringArray(value.ppEnabledExtensionNames, value.enabledExtensionCount);
+    encoder->EncodeStringArray(value.ppEnabledExtensionNames, value.enabledExtensionCount, false);
 }
 
 void encode_struct(ParameterEncoder* encoder, const VkAllocationCallbacks& value)
@@ -202,9 +202,9 @@ void encode_struct(ParameterEncoder* encoder, const VkPhysicalDeviceLimits& valu
     encoder->EncodeUInt32Value(value.maxFragmentDualSrcAttachments);
     encoder->EncodeUInt32Value(value.maxFragmentCombinedOutputResources);
     encoder->EncodeUInt32Value(value.maxComputeSharedMemorySize);
-    encoder->EncodeUInt32Array(value.maxComputeWorkGroupCount, 3);
+    encoder->EncodeUInt32Array(value.maxComputeWorkGroupCount, 3, false);
     encoder->EncodeUInt32Value(value.maxComputeWorkGroupInvocations);
-    encoder->EncodeUInt32Array(value.maxComputeWorkGroupSize, 3);
+    encoder->EncodeUInt32Array(value.maxComputeWorkGroupSize, 3, false);
     encoder->EncodeUInt32Value(value.subPixelPrecisionBits);
     encoder->EncodeUInt32Value(value.subTexelPrecisionBits);
     encoder->EncodeUInt32Value(value.mipmapPrecisionBits);
@@ -213,8 +213,8 @@ void encode_struct(ParameterEncoder* encoder, const VkPhysicalDeviceLimits& valu
     encoder->EncodeFloatValue(value.maxSamplerLodBias);
     encoder->EncodeFloatValue(value.maxSamplerAnisotropy);
     encoder->EncodeUInt32Value(value.maxViewports);
-    encoder->EncodeUInt32Array(value.maxViewportDimensions, 2);
-    encoder->EncodeFloatArray(value.viewportBoundsRange, 2);
+    encoder->EncodeUInt32Array(value.maxViewportDimensions, 2, false);
+    encoder->EncodeFloatArray(value.viewportBoundsRange, 2, false);
     encoder->EncodeUInt32Value(value.viewportSubPixelBits);
     encoder->EncodeSizeTValue(value.minMemoryMapAlignment);
     encoder->EncodeVkDeviceSizeValue(value.minTexelBufferOffsetAlignment);
@@ -247,8 +247,8 @@ void encode_struct(ParameterEncoder* encoder, const VkPhysicalDeviceLimits& valu
     encoder->EncodeUInt32Value(value.maxCullDistances);
     encoder->EncodeUInt32Value(value.maxCombinedClipAndCullDistances);
     encoder->EncodeUInt32Value(value.discreteQueuePriorities);
-    encoder->EncodeFloatArray(value.pointSizeRange, 2);
-    encoder->EncodeFloatArray(value.lineWidthRange, 2);
+    encoder->EncodeFloatArray(value.pointSizeRange, 2, false);
+    encoder->EncodeFloatArray(value.lineWidthRange, 2, false);
     encoder->EncodeFloatValue(value.pointSizeGranularity);
     encoder->EncodeFloatValue(value.lineWidthGranularity);
     encoder->EncodeVkBool32Value(value.strictLines);
@@ -274,8 +274,8 @@ void encode_struct(ParameterEncoder* encoder, const VkPhysicalDeviceProperties& 
     encoder->EncodeUInt32Value(value.vendorID);
     encoder->EncodeUInt32Value(value.deviceID);
     encoder->EncodeEnumValue(value.deviceType);
-    encoder->EncodeString(value.deviceName);
-    encoder->EncodeUInt8Array(value.pipelineCacheUUID, VK_UUID_SIZE);
+    encoder->EncodeString(value.deviceName, false);
+    encoder->EncodeUInt8Array(value.pipelineCacheUUID, VK_UUID_SIZE, false);
     encode_struct(encoder, value.limits);
     encode_struct(encoder, value.sparseProperties);
 }
@@ -303,9 +303,9 @@ void encode_struct(ParameterEncoder* encoder, const VkMemoryHeap& value)
 void encode_struct(ParameterEncoder* encoder, const VkPhysicalDeviceMemoryProperties& value)
 {
     encoder->EncodeUInt32Value(value.memoryTypeCount);
-    encode_struct_array(encoder, value.memoryTypes, value.memoryTypeCount);
+    encode_struct_array(encoder, value.memoryTypes, value.memoryTypeCount, false);
     encoder->EncodeUInt32Value(value.memoryHeapCount);
-    encode_struct_array(encoder, value.memoryHeaps, value.memoryHeapCount);
+    encode_struct_array(encoder, value.memoryHeaps, value.memoryHeapCount, false);
 }
 
 void encode_struct(ParameterEncoder* encoder, const VkDeviceQueueCreateInfo& value)
@@ -315,7 +315,7 @@ void encode_struct(ParameterEncoder* encoder, const VkDeviceQueueCreateInfo& val
     encoder->EncodeFlagsValue(value.flags);
     encoder->EncodeUInt32Value(value.queueFamilyIndex);
     encoder->EncodeUInt32Value(value.queueCount);
-    encoder->EncodeFloatArray(value.pQueuePriorities, value.queueCount);
+    encoder->EncodeFloatArray(value.pQueuePriorities, value.queueCount, false);
 }
 
 void encode_struct(ParameterEncoder* encoder, const VkDeviceCreateInfo& value)
@@ -324,26 +324,26 @@ void encode_struct(ParameterEncoder* encoder, const VkDeviceCreateInfo& value)
     encode_pnext_struct(encoder, value.pNext);
     encoder->EncodeFlagsValue(value.flags);
     encoder->EncodeUInt32Value(value.queueCreateInfoCount);
-    encode_struct_array(encoder, value.pQueueCreateInfos, value.queueCreateInfoCount);
+    encode_struct_array(encoder, value.pQueueCreateInfos, value.queueCreateInfoCount, false);
     encoder->EncodeUInt32Value(value.enabledLayerCount);
-    encoder->EncodeStringArray(value.ppEnabledLayerNames, value.enabledLayerCount);
+    encoder->EncodeStringArray(value.ppEnabledLayerNames, value.enabledLayerCount, false);
     encoder->EncodeUInt32Value(value.enabledExtensionCount);
-    encoder->EncodeStringArray(value.ppEnabledExtensionNames, value.enabledExtensionCount);
-    encode_struct_ptr(encoder, value.pEnabledFeatures);
+    encoder->EncodeStringArray(value.ppEnabledExtensionNames, value.enabledExtensionCount, false);
+    encode_struct_ptr(encoder, value.pEnabledFeatures, false);
 }
 
 void encode_struct(ParameterEncoder* encoder, const VkExtensionProperties& value)
 {
-    encoder->EncodeString(value.extensionName);
+    encoder->EncodeString(value.extensionName, false);
     encoder->EncodeUInt32Value(value.specVersion);
 }
 
 void encode_struct(ParameterEncoder* encoder, const VkLayerProperties& value)
 {
-    encoder->EncodeString(value.layerName);
+    encoder->EncodeString(value.layerName, false);
     encoder->EncodeUInt32Value(value.specVersion);
     encoder->EncodeUInt32Value(value.implementationVersion);
-    encoder->EncodeString(value.description);
+    encoder->EncodeString(value.description, false);
 }
 
 void encode_struct(ParameterEncoder* encoder, const VkSubmitInfo& value)
@@ -351,12 +351,12 @@ void encode_struct(ParameterEncoder* encoder, const VkSubmitInfo& value)
     encoder->EncodeEnumValue(value.sType);
     encode_pnext_struct(encoder, value.pNext);
     encoder->EncodeUInt32Value(value.waitSemaphoreCount);
-    encoder->EncodeHandleIdArray(value.pWaitSemaphores, value.waitSemaphoreCount);
-    encoder->EncodeFlagsArray(value.pWaitDstStageMask, value.waitSemaphoreCount);
+    encoder->EncodeHandleIdArray(value.pWaitSemaphores, value.waitSemaphoreCount, false);
+    encoder->EncodeFlagsArray(value.pWaitDstStageMask, value.waitSemaphoreCount, false);
     encoder->EncodeUInt32Value(value.commandBufferCount);
-    encoder->EncodeHandleIdArray(value.pCommandBuffers, value.commandBufferCount);
+    encoder->EncodeHandleIdArray(value.pCommandBuffers, value.commandBufferCount, false);
     encoder->EncodeUInt32Value(value.signalSemaphoreCount);
-    encoder->EncodeHandleIdArray(value.pSignalSemaphores, value.signalSemaphoreCount);
+    encoder->EncodeHandleIdArray(value.pSignalSemaphores, value.signalSemaphoreCount, false);
 }
 
 void encode_struct(ParameterEncoder* encoder, const VkMemoryAllocateInfo& value)
@@ -412,14 +412,14 @@ void encode_struct(ParameterEncoder* encoder, const VkSparseBufferMemoryBindInfo
 {
     encoder->EncodeHandleIdValue(value.buffer);
     encoder->EncodeUInt32Value(value.bindCount);
-    encode_struct_array(encoder, value.pBinds, value.bindCount);
+    encode_struct_array(encoder, value.pBinds, value.bindCount, false);
 }
 
 void encode_struct(ParameterEncoder* encoder, const VkSparseImageOpaqueMemoryBindInfo& value)
 {
     encoder->EncodeHandleIdValue(value.image);
     encoder->EncodeUInt32Value(value.bindCount);
-    encode_struct_array(encoder, value.pBinds, value.bindCount);
+    encode_struct_array(encoder, value.pBinds, value.bindCount, false);
 }
 
 void encode_struct(ParameterEncoder* encoder, const VkImageSubresource& value)
@@ -450,7 +450,7 @@ void encode_struct(ParameterEncoder* encoder, const VkSparseImageMemoryBindInfo&
 {
     encoder->EncodeHandleIdValue(value.image);
     encoder->EncodeUInt32Value(value.bindCount);
-    encode_struct_array(encoder, value.pBinds, value.bindCount);
+    encode_struct_array(encoder, value.pBinds, value.bindCount, false);
 }
 
 void encode_struct(ParameterEncoder* encoder, const VkBindSparseInfo& value)
@@ -458,15 +458,15 @@ void encode_struct(ParameterEncoder* encoder, const VkBindSparseInfo& value)
     encoder->EncodeEnumValue(value.sType);
     encode_pnext_struct(encoder, value.pNext);
     encoder->EncodeUInt32Value(value.waitSemaphoreCount);
-    encoder->EncodeHandleIdArray(value.pWaitSemaphores, value.waitSemaphoreCount);
+    encoder->EncodeHandleIdArray(value.pWaitSemaphores, value.waitSemaphoreCount, false);
     encoder->EncodeUInt32Value(value.bufferBindCount);
-    encode_struct_array(encoder, value.pBufferBinds, value.bufferBindCount);
+    encode_struct_array(encoder, value.pBufferBinds, value.bufferBindCount, false);
     encoder->EncodeUInt32Value(value.imageOpaqueBindCount);
-    encode_struct_array(encoder, value.pImageOpaqueBinds, value.imageOpaqueBindCount);
+    encode_struct_array(encoder, value.pImageOpaqueBinds, value.imageOpaqueBindCount, false);
     encoder->EncodeUInt32Value(value.imageBindCount);
-    encode_struct_array(encoder, value.pImageBinds, value.imageBindCount);
+    encode_struct_array(encoder, value.pImageBinds, value.imageBindCount, false);
     encoder->EncodeUInt32Value(value.signalSemaphoreCount);
-    encoder->EncodeHandleIdArray(value.pSignalSemaphores, value.signalSemaphoreCount);
+    encoder->EncodeHandleIdArray(value.pSignalSemaphores, value.signalSemaphoreCount, false);
 }
 
 void encode_struct(ParameterEncoder* encoder, const VkFenceCreateInfo& value)
@@ -509,7 +509,7 @@ void encode_struct(ParameterEncoder* encoder, const VkBufferCreateInfo& value)
     encoder->EncodeFlagsValue(value.usage);
     encoder->EncodeEnumValue(value.sharingMode);
     encoder->EncodeUInt32Value(value.queueFamilyIndexCount);
-    encoder->EncodeUInt32Array(value.pQueueFamilyIndices, value.queueFamilyIndexCount);
+    encoder->EncodeUInt32Array(value.pQueueFamilyIndices, value.queueFamilyIndexCount, false);
 }
 
 void encode_struct(ParameterEncoder* encoder, const VkBufferViewCreateInfo& value)
@@ -538,7 +538,7 @@ void encode_struct(ParameterEncoder* encoder, const VkImageCreateInfo& value)
     encoder->EncodeFlagsValue(value.usage);
     encoder->EncodeEnumValue(value.sharingMode);
     encoder->EncodeUInt32Value(value.queueFamilyIndexCount);
-    encoder->EncodeUInt32Array(value.pQueueFamilyIndices, value.queueFamilyIndexCount);
+    encoder->EncodeUInt32Array(value.pQueueFamilyIndices, value.queueFamilyIndexCount, false);
     encoder->EncodeEnumValue(value.initialLayout);
 }
 
@@ -586,7 +586,7 @@ void encode_struct(ParameterEncoder* encoder, const VkShaderModuleCreateInfo& va
     encode_pnext_struct(encoder, value.pNext);
     encoder->EncodeFlagsValue(value.flags);
     encoder->EncodeSizeTValue(value.codeSize);
-    encoder->EncodeUInt32Array(value.pCode, value.codeSize/4);
+    encoder->EncodeUInt32Array(value.pCode, value.codeSize/4, false);
 }
 
 void encode_struct(ParameterEncoder* encoder, const VkPipelineCacheCreateInfo& value)
@@ -595,7 +595,7 @@ void encode_struct(ParameterEncoder* encoder, const VkPipelineCacheCreateInfo& v
     encode_pnext_struct(encoder, value.pNext);
     encoder->EncodeFlagsValue(value.flags);
     encoder->EncodeSizeTValue(value.initialDataSize);
-    encoder->EncodeVoidArray(value.pInitialData, value.initialDataSize);
+    encoder->EncodeVoidArray(value.pInitialData, value.initialDataSize, false);
 }
 
 void encode_struct(ParameterEncoder* encoder, const VkSpecializationMapEntry& value)
@@ -608,9 +608,9 @@ void encode_struct(ParameterEncoder* encoder, const VkSpecializationMapEntry& va
 void encode_struct(ParameterEncoder* encoder, const VkSpecializationInfo& value)
 {
     encoder->EncodeUInt32Value(value.mapEntryCount);
-    encode_struct_array(encoder, value.pMapEntries, value.mapEntryCount);
+    encode_struct_array(encoder, value.pMapEntries, value.mapEntryCount, false);
     encoder->EncodeSizeTValue(value.dataSize);
-    encoder->EncodeVoidArray(value.pData, value.dataSize);
+    encoder->EncodeVoidArray(value.pData, value.dataSize, false);
 }
 
 void encode_struct(ParameterEncoder* encoder, const VkPipelineShaderStageCreateInfo& value)
@@ -620,8 +620,8 @@ void encode_struct(ParameterEncoder* encoder, const VkPipelineShaderStageCreateI
     encoder->EncodeFlagsValue(value.flags);
     encoder->EncodeEnumValue(value.stage);
     encoder->EncodeHandleIdValue(value.module);
-    encoder->EncodeString(value.pName);
-    encode_struct_ptr(encoder, value.pSpecializationInfo);
+    encoder->EncodeString(value.pName, false);
+    encode_struct_ptr(encoder, value.pSpecializationInfo, false);
 }
 
 void encode_struct(ParameterEncoder* encoder, const VkVertexInputBindingDescription& value)
@@ -645,9 +645,9 @@ void encode_struct(ParameterEncoder* encoder, const VkPipelineVertexInputStateCr
     encode_pnext_struct(encoder, value.pNext);
     encoder->EncodeFlagsValue(value.flags);
     encoder->EncodeUInt32Value(value.vertexBindingDescriptionCount);
-    encode_struct_array(encoder, value.pVertexBindingDescriptions, value.vertexBindingDescriptionCount);
+    encode_struct_array(encoder, value.pVertexBindingDescriptions, value.vertexBindingDescriptionCount, false);
     encoder->EncodeUInt32Value(value.vertexAttributeDescriptionCount);
-    encode_struct_array(encoder, value.pVertexAttributeDescriptions, value.vertexAttributeDescriptionCount);
+    encode_struct_array(encoder, value.pVertexAttributeDescriptions, value.vertexAttributeDescriptionCount, false);
 }
 
 void encode_struct(ParameterEncoder* encoder, const VkPipelineInputAssemblyStateCreateInfo& value)
@@ -701,9 +701,9 @@ void encode_struct(ParameterEncoder* encoder, const VkPipelineViewportStateCreat
     encode_pnext_struct(encoder, value.pNext);
     encoder->EncodeFlagsValue(value.flags);
     encoder->EncodeUInt32Value(value.viewportCount);
-    encode_struct_array(encoder, value.pViewports, value.viewportCount);
+    encode_struct_array(encoder, value.pViewports, value.viewportCount, false);
     encoder->EncodeUInt32Value(value.scissorCount);
-    encode_struct_array(encoder, value.pScissors, value.scissorCount);
+    encode_struct_array(encoder, value.pScissors, value.scissorCount, false);
 }
 
 void encode_struct(ParameterEncoder* encoder, const VkPipelineRasterizationStateCreateInfo& value)
@@ -731,7 +731,7 @@ void encode_struct(ParameterEncoder* encoder, const VkPipelineMultisampleStateCr
     encoder->EncodeEnumValue(value.rasterizationSamples);
     encoder->EncodeVkBool32Value(value.sampleShadingEnable);
     encoder->EncodeFloatValue(value.minSampleShading);
-    encoder->EncodeVkSampleMaskArray(value.pSampleMask, static_cast<size_t>(ceil(static_cast<double>(value.rasterizationSamples)/static_cast<double>(32))));
+    encoder->EncodeVkSampleMaskArray(value.pSampleMask, static_cast<size_t>(ceil(static_cast<double>(value.rasterizationSamples)/static_cast<double>(32))), false);
     encoder->EncodeVkBool32Value(value.alphaToCoverageEnable);
     encoder->EncodeVkBool32Value(value.alphaToOneEnable);
 }
@@ -783,8 +783,8 @@ void encode_struct(ParameterEncoder* encoder, const VkPipelineColorBlendStateCre
     encoder->EncodeVkBool32Value(value.logicOpEnable);
     encoder->EncodeEnumValue(value.logicOp);
     encoder->EncodeUInt32Value(value.attachmentCount);
-    encode_struct_array(encoder, value.pAttachments, value.attachmentCount);
-    encoder->EncodeFloatArray(value.blendConstants, 4);
+    encode_struct_array(encoder, value.pAttachments, value.attachmentCount, false);
+    encoder->EncodeFloatArray(value.blendConstants, 4, false);
 }
 
 void encode_struct(ParameterEncoder* encoder, const VkPipelineDynamicStateCreateInfo& value)
@@ -793,7 +793,7 @@ void encode_struct(ParameterEncoder* encoder, const VkPipelineDynamicStateCreate
     encode_pnext_struct(encoder, value.pNext);
     encoder->EncodeFlagsValue(value.flags);
     encoder->EncodeUInt32Value(value.dynamicStateCount);
-    encoder->EncodeEnumArray(value.pDynamicStates, value.dynamicStateCount);
+    encoder->EncodeEnumArray(value.pDynamicStates, value.dynamicStateCount, false);
 }
 
 void encode_struct(ParameterEncoder* encoder, const VkGraphicsPipelineCreateInfo& value)
@@ -802,16 +802,16 @@ void encode_struct(ParameterEncoder* encoder, const VkGraphicsPipelineCreateInfo
     encode_pnext_struct(encoder, value.pNext);
     encoder->EncodeFlagsValue(value.flags);
     encoder->EncodeUInt32Value(value.stageCount);
-    encode_struct_array(encoder, value.pStages, value.stageCount);
-    encode_struct_ptr(encoder, value.pVertexInputState);
-    encode_struct_ptr(encoder, value.pInputAssemblyState);
-    encode_struct_ptr(encoder, value.pTessellationState);
-    encode_struct_ptr(encoder, value.pViewportState);
-    encode_struct_ptr(encoder, value.pRasterizationState);
-    encode_struct_ptr(encoder, value.pMultisampleState);
-    encode_struct_ptr(encoder, value.pDepthStencilState);
-    encode_struct_ptr(encoder, value.pColorBlendState);
-    encode_struct_ptr(encoder, value.pDynamicState);
+    encode_struct_array(encoder, value.pStages, value.stageCount, false);
+    encode_struct_ptr(encoder, value.pVertexInputState, false);
+    encode_struct_ptr(encoder, value.pInputAssemblyState, false);
+    encode_struct_ptr(encoder, value.pTessellationState, false);
+    encode_struct_ptr(encoder, value.pViewportState, false);
+    encode_struct_ptr(encoder, value.pRasterizationState, false);
+    encode_struct_ptr(encoder, value.pMultisampleState, false);
+    encode_struct_ptr(encoder, value.pDepthStencilState, false);
+    encode_struct_ptr(encoder, value.pColorBlendState, false);
+    encode_struct_ptr(encoder, value.pDynamicState, false);
     encoder->EncodeHandleIdValue(value.layout);
     encoder->EncodeHandleIdValue(value.renderPass);
     encoder->EncodeUInt32Value(value.subpass);
@@ -843,9 +843,9 @@ void encode_struct(ParameterEncoder* encoder, const VkPipelineLayoutCreateInfo& 
     encode_pnext_struct(encoder, value.pNext);
     encoder->EncodeFlagsValue(value.flags);
     encoder->EncodeUInt32Value(value.setLayoutCount);
-    encoder->EncodeHandleIdArray(value.pSetLayouts, value.setLayoutCount);
+    encoder->EncodeHandleIdArray(value.pSetLayouts, value.setLayoutCount, false);
     encoder->EncodeUInt32Value(value.pushConstantRangeCount);
-    encode_struct_array(encoder, value.pPushConstantRanges, value.pushConstantRangeCount);
+    encode_struct_array(encoder, value.pPushConstantRanges, value.pushConstantRangeCount, false);
 }
 
 void encode_struct(ParameterEncoder* encoder, const VkSamplerCreateInfo& value)
@@ -876,7 +876,7 @@ void encode_struct(ParameterEncoder* encoder, const VkDescriptorSetLayoutBinding
     encoder->EncodeEnumValue(value.descriptorType);
     encoder->EncodeUInt32Value(value.descriptorCount);
     encoder->EncodeFlagsValue(value.stageFlags);
-    encoder->EncodeHandleIdArray(value.pImmutableSamplers, value.descriptorCount);
+    encoder->EncodeHandleIdArray(value.pImmutableSamplers, value.descriptorCount, false);
 }
 
 void encode_struct(ParameterEncoder* encoder, const VkDescriptorSetLayoutCreateInfo& value)
@@ -885,7 +885,7 @@ void encode_struct(ParameterEncoder* encoder, const VkDescriptorSetLayoutCreateI
     encode_pnext_struct(encoder, value.pNext);
     encoder->EncodeFlagsValue(value.flags);
     encoder->EncodeUInt32Value(value.bindingCount);
-    encode_struct_array(encoder, value.pBindings, value.bindingCount);
+    encode_struct_array(encoder, value.pBindings, value.bindingCount, false);
 }
 
 void encode_struct(ParameterEncoder* encoder, const VkDescriptorPoolSize& value)
@@ -901,7 +901,7 @@ void encode_struct(ParameterEncoder* encoder, const VkDescriptorPoolCreateInfo& 
     encoder->EncodeFlagsValue(value.flags);
     encoder->EncodeUInt32Value(value.maxSets);
     encoder->EncodeUInt32Value(value.poolSizeCount);
-    encode_struct_array(encoder, value.pPoolSizes, value.poolSizeCount);
+    encode_struct_array(encoder, value.pPoolSizes, value.poolSizeCount, false);
 }
 
 void encode_struct(ParameterEncoder* encoder, const VkDescriptorSetAllocateInfo& value)
@@ -910,7 +910,7 @@ void encode_struct(ParameterEncoder* encoder, const VkDescriptorSetAllocateInfo&
     encode_pnext_struct(encoder, value.pNext);
     encoder->EncodeHandleIdValue(value.descriptorPool);
     encoder->EncodeUInt32Value(value.descriptorSetCount);
-    encoder->EncodeHandleIdArray(value.pSetLayouts, value.descriptorSetCount);
+    encoder->EncodeHandleIdArray(value.pSetLayouts, value.descriptorSetCount, false);
 }
 
 void encode_struct(ParameterEncoder* encoder, const VkDescriptorImageInfo& value)
@@ -936,9 +936,9 @@ void encode_struct(ParameterEncoder* encoder, const VkWriteDescriptorSet& value)
     encoder->EncodeUInt32Value(value.dstArrayElement);
     encoder->EncodeUInt32Value(value.descriptorCount);
     encoder->EncodeEnumValue(value.descriptorType);
-    encode_struct_array(encoder, value.pImageInfo, value.descriptorCount);
-    encode_struct_array(encoder, value.pBufferInfo, value.descriptorCount);
-    encoder->EncodeHandleIdArray(value.pTexelBufferView, value.descriptorCount);
+    encode_struct_array(encoder, value.pImageInfo, value.descriptorCount, false);
+    encode_struct_array(encoder, value.pBufferInfo, value.descriptorCount, false);
+    encoder->EncodeHandleIdArray(value.pTexelBufferView, value.descriptorCount, false);
 }
 
 void encode_struct(ParameterEncoder* encoder, const VkCopyDescriptorSet& value)
@@ -961,7 +961,7 @@ void encode_struct(ParameterEncoder* encoder, const VkFramebufferCreateInfo& val
     encoder->EncodeFlagsValue(value.flags);
     encoder->EncodeHandleIdValue(value.renderPass);
     encoder->EncodeUInt32Value(value.attachmentCount);
-    encoder->EncodeHandleIdArray(value.pAttachments, value.attachmentCount);
+    encoder->EncodeHandleIdArray(value.pAttachments, value.attachmentCount, false);
     encoder->EncodeUInt32Value(value.width);
     encoder->EncodeUInt32Value(value.height);
     encoder->EncodeUInt32Value(value.layers);
@@ -991,13 +991,13 @@ void encode_struct(ParameterEncoder* encoder, const VkSubpassDescription& value)
     encoder->EncodeFlagsValue(value.flags);
     encoder->EncodeEnumValue(value.pipelineBindPoint);
     encoder->EncodeUInt32Value(value.inputAttachmentCount);
-    encode_struct_array(encoder, value.pInputAttachments, value.inputAttachmentCount);
+    encode_struct_array(encoder, value.pInputAttachments, value.inputAttachmentCount, false);
     encoder->EncodeUInt32Value(value.colorAttachmentCount);
-    encode_struct_array(encoder, value.pColorAttachments, value.colorAttachmentCount);
-    encode_struct_array(encoder, value.pResolveAttachments, value.colorAttachmentCount);
-    encode_struct_ptr(encoder, value.pDepthStencilAttachment);
+    encode_struct_array(encoder, value.pColorAttachments, value.colorAttachmentCount, false);
+    encode_struct_array(encoder, value.pResolveAttachments, value.colorAttachmentCount, false);
+    encode_struct_ptr(encoder, value.pDepthStencilAttachment, false);
     encoder->EncodeUInt32Value(value.preserveAttachmentCount);
-    encoder->EncodeUInt32Array(value.pPreserveAttachments, value.preserveAttachmentCount);
+    encoder->EncodeUInt32Array(value.pPreserveAttachments, value.preserveAttachmentCount, false);
 }
 
 void encode_struct(ParameterEncoder* encoder, const VkSubpassDependency& value)
@@ -1017,11 +1017,11 @@ void encode_struct(ParameterEncoder* encoder, const VkRenderPassCreateInfo& valu
     encode_pnext_struct(encoder, value.pNext);
     encoder->EncodeFlagsValue(value.flags);
     encoder->EncodeUInt32Value(value.attachmentCount);
-    encode_struct_array(encoder, value.pAttachments, value.attachmentCount);
+    encode_struct_array(encoder, value.pAttachments, value.attachmentCount, false);
     encoder->EncodeUInt32Value(value.subpassCount);
-    encode_struct_array(encoder, value.pSubpasses, value.subpassCount);
+    encode_struct_array(encoder, value.pSubpasses, value.subpassCount, false);
     encoder->EncodeUInt32Value(value.dependencyCount);
-    encode_struct_array(encoder, value.pDependencies, value.dependencyCount);
+    encode_struct_array(encoder, value.pDependencies, value.dependencyCount, false);
 }
 
 void encode_struct(ParameterEncoder* encoder, const VkCommandPoolCreateInfo& value)
@@ -1058,7 +1058,7 @@ void encode_struct(ParameterEncoder* encoder, const VkCommandBufferBeginInfo& va
     encoder->EncodeEnumValue(value.sType);
     encode_pnext_struct(encoder, value.pNext);
     encoder->EncodeFlagsValue(value.flags);
-    encode_struct_ptr(encoder, value.pInheritanceInfo);
+    encode_struct_ptr(encoder, value.pInheritanceInfo, false);
 }
 
 void encode_struct(ParameterEncoder* encoder, const VkBufferCopy& value)
@@ -1088,9 +1088,9 @@ void encode_struct(ParameterEncoder* encoder, const VkImageCopy& value)
 void encode_struct(ParameterEncoder* encoder, const VkImageBlit& value)
 {
     encode_struct(encoder, value.srcSubresource);
-    encode_struct_array(encoder, value.srcOffsets, 2);
+    encode_struct_array(encoder, value.srcOffsets, 2, false);
     encode_struct(encoder, value.dstSubresource);
-    encode_struct_array(encoder, value.dstOffsets, 2);
+    encode_struct_array(encoder, value.dstOffsets, 2, false);
 }
 
 void encode_struct(ParameterEncoder* encoder, const VkBufferImageCopy& value)
@@ -1175,7 +1175,7 @@ void encode_struct(ParameterEncoder* encoder, const VkRenderPassBeginInfo& value
     encoder->EncodeHandleIdValue(value.framebuffer);
     encode_struct(encoder, value.renderArea);
     encoder->EncodeUInt32Value(value.clearValueCount);
-    encode_struct_array(encoder, value.pClearValues, value.clearValueCount);
+    encode_struct_array(encoder, value.pClearValues, value.clearValueCount, false);
 }
 
 void encode_struct(ParameterEncoder* encoder, const VkDispatchIndirectCommand& value)
@@ -1270,7 +1270,7 @@ void encode_struct(ParameterEncoder* encoder, const VkDeviceGroupRenderPassBegin
     encode_pnext_struct(encoder, value.pNext);
     encoder->EncodeUInt32Value(value.deviceMask);
     encoder->EncodeUInt32Value(value.deviceRenderAreaCount);
-    encode_struct_array(encoder, value.pDeviceRenderAreas, value.deviceRenderAreaCount);
+    encode_struct_array(encoder, value.pDeviceRenderAreas, value.deviceRenderAreaCount, false);
 }
 
 void encode_struct(ParameterEncoder* encoder, const VkDeviceGroupCommandBufferBeginInfo& value)
@@ -1285,11 +1285,11 @@ void encode_struct(ParameterEncoder* encoder, const VkDeviceGroupSubmitInfo& val
     encoder->EncodeEnumValue(value.sType);
     encode_pnext_struct(encoder, value.pNext);
     encoder->EncodeUInt32Value(value.waitSemaphoreCount);
-    encoder->EncodeUInt32Array(value.pWaitSemaphoreDeviceIndices, value.waitSemaphoreCount);
+    encoder->EncodeUInt32Array(value.pWaitSemaphoreDeviceIndices, value.waitSemaphoreCount, false);
     encoder->EncodeUInt32Value(value.commandBufferCount);
-    encoder->EncodeUInt32Array(value.pCommandBufferDeviceMasks, value.commandBufferCount);
+    encoder->EncodeUInt32Array(value.pCommandBufferDeviceMasks, value.commandBufferCount, false);
     encoder->EncodeUInt32Value(value.signalSemaphoreCount);
-    encoder->EncodeUInt32Array(value.pSignalSemaphoreDeviceIndices, value.signalSemaphoreCount);
+    encoder->EncodeUInt32Array(value.pSignalSemaphoreDeviceIndices, value.signalSemaphoreCount, false);
 }
 
 void encode_struct(ParameterEncoder* encoder, const VkDeviceGroupBindSparseInfo& value)
@@ -1305,7 +1305,7 @@ void encode_struct(ParameterEncoder* encoder, const VkBindBufferMemoryDeviceGrou
     encoder->EncodeEnumValue(value.sType);
     encode_pnext_struct(encoder, value.pNext);
     encoder->EncodeUInt32Value(value.deviceIndexCount);
-    encoder->EncodeUInt32Array(value.pDeviceIndices, value.deviceIndexCount);
+    encoder->EncodeUInt32Array(value.pDeviceIndices, value.deviceIndexCount, false);
 }
 
 void encode_struct(ParameterEncoder* encoder, const VkBindImageMemoryDeviceGroupInfo& value)
@@ -1313,9 +1313,9 @@ void encode_struct(ParameterEncoder* encoder, const VkBindImageMemoryDeviceGroup
     encoder->EncodeEnumValue(value.sType);
     encode_pnext_struct(encoder, value.pNext);
     encoder->EncodeUInt32Value(value.deviceIndexCount);
-    encoder->EncodeUInt32Array(value.pDeviceIndices, value.deviceIndexCount);
+    encoder->EncodeUInt32Array(value.pDeviceIndices, value.deviceIndexCount, false);
     encoder->EncodeUInt32Value(value.splitInstanceBindRegionCount);
-    encode_struct_array(encoder, value.pSplitInstanceBindRegions, value.splitInstanceBindRegionCount);
+    encode_struct_array(encoder, value.pSplitInstanceBindRegions, value.splitInstanceBindRegionCount, false);
 }
 
 void encode_struct(ParameterEncoder* encoder, const VkPhysicalDeviceGroupProperties& value)
@@ -1323,7 +1323,7 @@ void encode_struct(ParameterEncoder* encoder, const VkPhysicalDeviceGroupPropert
     encoder->EncodeEnumValue(value.sType);
     encode_pnext_struct(encoder, value.pNext);
     encoder->EncodeUInt32Value(value.physicalDeviceCount);
-    encoder->EncodeHandleIdArray(value.physicalDevices, value.physicalDeviceCount);
+    encoder->EncodeHandleIdArray(value.physicalDevices, value.physicalDeviceCount, false);
     encoder->EncodeVkBool32Value(value.subsetAllocation);
 }
 
@@ -1332,7 +1332,7 @@ void encode_struct(ParameterEncoder* encoder, const VkDeviceGroupDeviceCreateInf
     encoder->EncodeEnumValue(value.sType);
     encode_pnext_struct(encoder, value.pNext);
     encoder->EncodeUInt32Value(value.physicalDeviceCount);
-    encoder->EncodeHandleIdArray(value.pPhysicalDevices, value.physicalDeviceCount);
+    encoder->EncodeHandleIdArray(value.pPhysicalDevices, value.physicalDeviceCount, false);
 }
 
 void encode_struct(ParameterEncoder* encoder, const VkBufferMemoryRequirementsInfo2& value)
@@ -1460,7 +1460,7 @@ void encode_struct(ParameterEncoder* encoder, const VkRenderPassInputAttachmentA
     encoder->EncodeEnumValue(value.sType);
     encode_pnext_struct(encoder, value.pNext);
     encoder->EncodeUInt32Value(value.aspectReferenceCount);
-    encode_struct_array(encoder, value.pAspectReferences, value.aspectReferenceCount);
+    encode_struct_array(encoder, value.pAspectReferences, value.aspectReferenceCount, false);
 }
 
 void encode_struct(ParameterEncoder* encoder, const VkImageViewUsageCreateInfo& value)
@@ -1482,11 +1482,11 @@ void encode_struct(ParameterEncoder* encoder, const VkRenderPassMultiviewCreateI
     encoder->EncodeEnumValue(value.sType);
     encode_pnext_struct(encoder, value.pNext);
     encoder->EncodeUInt32Value(value.subpassCount);
-    encoder->EncodeUInt32Array(value.pViewMasks, value.subpassCount);
+    encoder->EncodeUInt32Array(value.pViewMasks, value.subpassCount, false);
     encoder->EncodeUInt32Value(value.dependencyCount);
-    encoder->EncodeInt32Array(value.pViewOffsets, value.dependencyCount);
+    encoder->EncodeInt32Array(value.pViewOffsets, value.dependencyCount, false);
     encoder->EncodeUInt32Value(value.correlationMaskCount);
-    encoder->EncodeUInt32Array(value.pCorrelationMasks, value.correlationMaskCount);
+    encoder->EncodeUInt32Array(value.pCorrelationMasks, value.correlationMaskCount, false);
 }
 
 void encode_struct(ParameterEncoder* encoder, const VkPhysicalDeviceMultiviewFeatures& value)
@@ -1609,7 +1609,7 @@ void encode_struct(ParameterEncoder* encoder, const VkDescriptorUpdateTemplateCr
     encode_pnext_struct(encoder, value.pNext);
     encoder->EncodeFlagsValue(value.flags);
     encoder->EncodeUInt32Value(value.descriptorUpdateEntryCount);
-    encode_struct_array(encoder, value.pDescriptorUpdateEntries, value.descriptorUpdateEntryCount);
+    encode_struct_array(encoder, value.pDescriptorUpdateEntries, value.descriptorUpdateEntryCount, false);
     encoder->EncodeEnumValue(value.templateType);
     encoder->EncodeHandleIdValue(value.descriptorSetLayout);
     encoder->EncodeEnumValue(value.pipelineBindPoint);
@@ -1658,9 +1658,9 @@ void encode_struct(ParameterEncoder* encoder, const VkPhysicalDeviceIDProperties
 {
     encoder->EncodeEnumValue(value.sType);
     encode_pnext_struct(encoder, value.pNext);
-    encoder->EncodeUInt8Array(value.deviceUUID, VK_UUID_SIZE);
-    encoder->EncodeUInt8Array(value.driverUUID, VK_UUID_SIZE);
-    encoder->EncodeUInt8Array(value.deviceLUID, VK_LUID_SIZE);
+    encoder->EncodeUInt8Array(value.deviceUUID, VK_UUID_SIZE, false);
+    encoder->EncodeUInt8Array(value.driverUUID, VK_UUID_SIZE, false);
+    encoder->EncodeUInt8Array(value.deviceLUID, VK_LUID_SIZE, false);
     encoder->EncodeUInt32Value(value.deviceNodeMask);
     encoder->EncodeVkBool32Value(value.deviceLUIDValid);
 }
@@ -1788,7 +1788,7 @@ void encode_struct(ParameterEncoder* encoder, const VkSwapchainCreateInfoKHR& va
     encoder->EncodeFlagsValue(value.imageUsage);
     encoder->EncodeEnumValue(value.imageSharingMode);
     encoder->EncodeUInt32Value(value.queueFamilyIndexCount);
-    encoder->EncodeUInt32Array(value.pQueueFamilyIndices, value.queueFamilyIndexCount);
+    encoder->EncodeUInt32Array(value.pQueueFamilyIndices, value.queueFamilyIndexCount, false);
     encoder->EncodeEnumValue(value.preTransform);
     encoder->EncodeEnumValue(value.compositeAlpha);
     encoder->EncodeEnumValue(value.presentMode);
@@ -1801,11 +1801,11 @@ void encode_struct(ParameterEncoder* encoder, const VkPresentInfoKHR& value)
     encoder->EncodeEnumValue(value.sType);
     encode_pnext_struct(encoder, value.pNext);
     encoder->EncodeUInt32Value(value.waitSemaphoreCount);
-    encoder->EncodeHandleIdArray(value.pWaitSemaphores, value.waitSemaphoreCount);
+    encoder->EncodeHandleIdArray(value.pWaitSemaphores, value.waitSemaphoreCount, false);
     encoder->EncodeUInt32Value(value.swapchainCount);
-    encoder->EncodeHandleIdArray(value.pSwapchains, value.swapchainCount);
-    encoder->EncodeUInt32Array(value.pImageIndices, value.swapchainCount);
-    encoder->EncodeEnumArray(value.pResults, value.swapchainCount);
+    encoder->EncodeHandleIdArray(value.pSwapchains, value.swapchainCount, false);
+    encoder->EncodeUInt32Array(value.pImageIndices, value.swapchainCount, false);
+    encoder->EncodeEnumArray(value.pResults, value.swapchainCount, false);
 }
 
 void encode_struct(ParameterEncoder* encoder, const VkImageSwapchainCreateInfoKHR& value)
@@ -1838,7 +1838,7 @@ void encode_struct(ParameterEncoder* encoder, const VkDeviceGroupPresentCapabili
 {
     encoder->EncodeEnumValue(value.sType);
     encode_pnext_struct(encoder, value.pNext);
-    encoder->EncodeUInt32Array(value.presentMask, VK_MAX_DEVICE_GROUP_SIZE);
+    encoder->EncodeUInt32Array(value.presentMask, VK_MAX_DEVICE_GROUP_SIZE, false);
     encoder->EncodeFlagsValue(value.modes);
 }
 
@@ -1847,7 +1847,7 @@ void encode_struct(ParameterEncoder* encoder, const VkDeviceGroupPresentInfoKHR&
     encoder->EncodeEnumValue(value.sType);
     encode_pnext_struct(encoder, value.pNext);
     encoder->EncodeUInt32Value(value.swapchainCount);
-    encoder->EncodeUInt32Array(value.pDeviceMasks, value.swapchainCount);
+    encoder->EncodeUInt32Array(value.pDeviceMasks, value.swapchainCount, false);
     encoder->EncodeEnumValue(value.mode);
 }
 
@@ -1861,7 +1861,7 @@ void encode_struct(ParameterEncoder* encoder, const VkDeviceGroupSwapchainCreate
 void encode_struct(ParameterEncoder* encoder, const VkDisplayPropertiesKHR& value)
 {
     encoder->EncodeHandleIdValue(value.display);
-    encoder->EncodeString(value.displayName);
+    encoder->EncodeString(value.displayName, false);
     encode_struct(encoder, value.physicalDimensions);
     encode_struct(encoder, value.physicalResolution);
     encoder->EncodeFlagsValue(value.supportedTransforms);
@@ -2003,16 +2003,16 @@ void encode_struct(ParameterEncoder* encoder, const VkImportMemoryWin32HandleInf
     encode_pnext_struct(encoder, value.pNext);
     encoder->EncodeEnumValue(value.handleType);
     encoder->EncodeVoidPtr(value.handle);
-    encoder->EncodeWString(value.name);
+    encoder->EncodeWString(value.name, false);
 }
 
 void encode_struct(ParameterEncoder* encoder, const VkExportMemoryWin32HandleInfoKHR& value)
 {
     encoder->EncodeEnumValue(value.sType);
     encode_pnext_struct(encoder, value.pNext);
-    encode_struct_ptr(encoder, value.pAttributes);
+    encode_struct_ptr(encoder, value.pAttributes, false);
     encoder->EncodeUInt32Value(value.dwAccess);
-    encoder->EncodeWString(value.name);
+    encoder->EncodeWString(value.name, false);
 }
 
 void encode_struct(ParameterEncoder* encoder, const VkMemoryWin32HandlePropertiesKHR& value)
@@ -2060,12 +2060,12 @@ void encode_struct(ParameterEncoder* encoder, const VkWin32KeyedMutexAcquireRele
     encoder->EncodeEnumValue(value.sType);
     encode_pnext_struct(encoder, value.pNext);
     encoder->EncodeUInt32Value(value.acquireCount);
-    encoder->EncodeHandleIdArray(value.pAcquireSyncs, value.acquireCount);
-    encoder->EncodeUInt64Array(value.pAcquireKeys, value.acquireCount);
-    encoder->EncodeUInt32Array(value.pAcquireTimeouts, value.acquireCount);
+    encoder->EncodeHandleIdArray(value.pAcquireSyncs, value.acquireCount, false);
+    encoder->EncodeUInt64Array(value.pAcquireKeys, value.acquireCount, false);
+    encoder->EncodeUInt32Array(value.pAcquireTimeouts, value.acquireCount, false);
     encoder->EncodeUInt32Value(value.releaseCount);
-    encoder->EncodeHandleIdArray(value.pReleaseSyncs, value.releaseCount);
-    encoder->EncodeUInt64Array(value.pReleaseKeys, value.releaseCount);
+    encoder->EncodeHandleIdArray(value.pReleaseSyncs, value.releaseCount, false);
+    encoder->EncodeUInt64Array(value.pReleaseKeys, value.releaseCount, false);
 }
 #endif /* VK_USE_PLATFORM_WIN32_KHR */
 
@@ -2078,16 +2078,16 @@ void encode_struct(ParameterEncoder* encoder, const VkImportSemaphoreWin32Handle
     encoder->EncodeFlagsValue(value.flags);
     encoder->EncodeEnumValue(value.handleType);
     encoder->EncodeVoidPtr(value.handle);
-    encoder->EncodeWString(value.name);
+    encoder->EncodeWString(value.name, false);
 }
 
 void encode_struct(ParameterEncoder* encoder, const VkExportSemaphoreWin32HandleInfoKHR& value)
 {
     encoder->EncodeEnumValue(value.sType);
     encode_pnext_struct(encoder, value.pNext);
-    encode_struct_ptr(encoder, value.pAttributes);
+    encode_struct_ptr(encoder, value.pAttributes, false);
     encoder->EncodeUInt32Value(value.dwAccess);
-    encoder->EncodeWString(value.name);
+    encoder->EncodeWString(value.name, false);
 }
 
 void encode_struct(ParameterEncoder* encoder, const VkD3D12FenceSubmitInfoKHR& value)
@@ -2095,9 +2095,9 @@ void encode_struct(ParameterEncoder* encoder, const VkD3D12FenceSubmitInfoKHR& v
     encoder->EncodeEnumValue(value.sType);
     encode_pnext_struct(encoder, value.pNext);
     encoder->EncodeUInt32Value(value.waitSemaphoreValuesCount);
-    encoder->EncodeUInt64Array(value.pWaitSemaphoreValues, value.waitSemaphoreValuesCount);
+    encoder->EncodeUInt64Array(value.pWaitSemaphoreValues, value.waitSemaphoreValuesCount, false);
     encoder->EncodeUInt32Value(value.signalSemaphoreValuesCount);
-    encoder->EncodeUInt64Array(value.pSignalSemaphoreValues, value.signalSemaphoreValuesCount);
+    encoder->EncodeUInt64Array(value.pSignalSemaphoreValues, value.signalSemaphoreValuesCount, false);
 }
 
 void encode_struct(ParameterEncoder* encoder, const VkSemaphoreGetWin32HandleInfoKHR& value)
@@ -2144,7 +2144,7 @@ void encode_struct(ParameterEncoder* encoder, const VkRectLayerKHR& value)
 void encode_struct(ParameterEncoder* encoder, const VkPresentRegionKHR& value)
 {
     encoder->EncodeUInt32Value(value.rectangleCount);
-    encode_struct_array(encoder, value.pRectangles, value.rectangleCount);
+    encode_struct_array(encoder, value.pRectangles, value.rectangleCount, false);
 }
 
 void encode_struct(ParameterEncoder* encoder, const VkPresentRegionsKHR& value)
@@ -2152,7 +2152,7 @@ void encode_struct(ParameterEncoder* encoder, const VkPresentRegionsKHR& value)
     encoder->EncodeEnumValue(value.sType);
     encode_pnext_struct(encoder, value.pNext);
     encoder->EncodeUInt32Value(value.swapchainCount);
-    encode_struct_array(encoder, value.pRegions, value.swapchainCount);
+    encode_struct_array(encoder, value.pRegions, value.swapchainCount, false);
 }
 
 void encode_struct(ParameterEncoder* encoder, const VkAttachmentDescription2KHR& value)
@@ -2187,13 +2187,13 @@ void encode_struct(ParameterEncoder* encoder, const VkSubpassDescription2KHR& va
     encoder->EncodeEnumValue(value.pipelineBindPoint);
     encoder->EncodeUInt32Value(value.viewMask);
     encoder->EncodeUInt32Value(value.inputAttachmentCount);
-    encode_struct_array(encoder, value.pInputAttachments, value.inputAttachmentCount);
+    encode_struct_array(encoder, value.pInputAttachments, value.inputAttachmentCount, false);
     encoder->EncodeUInt32Value(value.colorAttachmentCount);
-    encode_struct_array(encoder, value.pColorAttachments, value.colorAttachmentCount);
-    encode_struct_array(encoder, value.pResolveAttachments, value.colorAttachmentCount);
-    encode_struct_ptr(encoder, value.pDepthStencilAttachment);
+    encode_struct_array(encoder, value.pColorAttachments, value.colorAttachmentCount, false);
+    encode_struct_array(encoder, value.pResolveAttachments, value.colorAttachmentCount, false);
+    encode_struct_ptr(encoder, value.pDepthStencilAttachment, false);
     encoder->EncodeUInt32Value(value.preserveAttachmentCount);
-    encoder->EncodeUInt32Array(value.pPreserveAttachments, value.preserveAttachmentCount);
+    encoder->EncodeUInt32Array(value.pPreserveAttachments, value.preserveAttachmentCount, false);
 }
 
 void encode_struct(ParameterEncoder* encoder, const VkSubpassDependency2KHR& value)
@@ -2216,13 +2216,13 @@ void encode_struct(ParameterEncoder* encoder, const VkRenderPassCreateInfo2KHR& 
     encode_pnext_struct(encoder, value.pNext);
     encoder->EncodeFlagsValue(value.flags);
     encoder->EncodeUInt32Value(value.attachmentCount);
-    encode_struct_array(encoder, value.pAttachments, value.attachmentCount);
+    encode_struct_array(encoder, value.pAttachments, value.attachmentCount, false);
     encoder->EncodeUInt32Value(value.subpassCount);
-    encode_struct_array(encoder, value.pSubpasses, value.subpassCount);
+    encode_struct_array(encoder, value.pSubpasses, value.subpassCount, false);
     encoder->EncodeUInt32Value(value.dependencyCount);
-    encode_struct_array(encoder, value.pDependencies, value.dependencyCount);
+    encode_struct_array(encoder, value.pDependencies, value.dependencyCount, false);
     encoder->EncodeUInt32Value(value.correlatedViewMaskCount);
-    encoder->EncodeUInt32Array(value.pCorrelatedViewMasks, value.correlatedViewMaskCount);
+    encoder->EncodeUInt32Array(value.pCorrelatedViewMasks, value.correlatedViewMaskCount, false);
 }
 
 void encode_struct(ParameterEncoder* encoder, const VkSubpassBeginInfoKHR& value)
@@ -2254,16 +2254,16 @@ void encode_struct(ParameterEncoder* encoder, const VkImportFenceWin32HandleInfo
     encoder->EncodeFlagsValue(value.flags);
     encoder->EncodeEnumValue(value.handleType);
     encoder->EncodeVoidPtr(value.handle);
-    encoder->EncodeWString(value.name);
+    encoder->EncodeWString(value.name, false);
 }
 
 void encode_struct(ParameterEncoder* encoder, const VkExportFenceWin32HandleInfoKHR& value)
 {
     encoder->EncodeEnumValue(value.sType);
     encode_pnext_struct(encoder, value.pNext);
-    encode_struct_ptr(encoder, value.pAttributes);
+    encode_struct_ptr(encoder, value.pAttributes, false);
     encoder->EncodeUInt32Value(value.dwAccess);
-    encoder->EncodeWString(value.name);
+    encoder->EncodeWString(value.name, false);
 }
 
 void encode_struct(ParameterEncoder* encoder, const VkFenceGetWin32HandleInfoKHR& value)
@@ -2355,7 +2355,7 @@ void encode_struct(ParameterEncoder* encoder, const VkImageFormatListCreateInfoK
     encoder->EncodeEnumValue(value.sType);
     encode_pnext_struct(encoder, value.pNext);
     encoder->EncodeUInt32Value(value.viewFormatCount);
-    encoder->EncodeEnumArray(value.pViewFormats, value.viewFormatCount);
+    encoder->EncodeEnumArray(value.pViewFormats, value.viewFormatCount, false);
 }
 
 void encode_struct(ParameterEncoder* encoder, const VkPhysicalDevice8BitStorageFeaturesKHR& value)
@@ -2388,8 +2388,8 @@ void encode_struct(ParameterEncoder* encoder, const VkPhysicalDeviceDriverProper
     encoder->EncodeEnumValue(value.sType);
     encode_pnext_struct(encoder, value.pNext);
     encoder->EncodeUInt32Value(value.driverID);
-    encoder->EncodeString(value.driverName);
-    encoder->EncodeString(value.driverInfo);
+    encoder->EncodeString(value.driverName, false);
+    encoder->EncodeString(value.driverInfo, false);
     encode_struct(encoder, value.conformanceVersion);
 }
 
@@ -2423,7 +2423,7 @@ void encode_struct(ParameterEncoder* encoder, const VkDebugMarkerObjectNameInfoE
     encode_pnext_struct(encoder, value.pNext);
     encoder->EncodeEnumValue(value.objectType);
     encoder->EncodeUInt64Value(value.object);
-    encoder->EncodeString(value.pObjectName);
+    encoder->EncodeString(value.pObjectName, false);
 }
 
 void encode_struct(ParameterEncoder* encoder, const VkDebugMarkerObjectTagInfoEXT& value)
@@ -2434,15 +2434,15 @@ void encode_struct(ParameterEncoder* encoder, const VkDebugMarkerObjectTagInfoEX
     encoder->EncodeUInt64Value(value.object);
     encoder->EncodeUInt64Value(value.tagName);
     encoder->EncodeSizeTValue(value.tagSize);
-    encoder->EncodeVoidArray(value.pTag, value.tagSize);
+    encoder->EncodeVoidArray(value.pTag, value.tagSize, false);
 }
 
 void encode_struct(ParameterEncoder* encoder, const VkDebugMarkerMarkerInfoEXT& value)
 {
     encoder->EncodeEnumValue(value.sType);
     encode_pnext_struct(encoder, value.pNext);
-    encoder->EncodeString(value.pMarkerName);
-    encoder->EncodeFloatArray(value.color, 4);
+    encoder->EncodeString(value.pMarkerName, false);
+    encoder->EncodeFloatArray(value.color, 4, false);
 }
 
 void encode_struct(ParameterEncoder* encoder, const VkDedicatedAllocationImageCreateInfoNV& value)
@@ -2491,7 +2491,7 @@ void encode_struct(ParameterEncoder* encoder, const VkShaderStatisticsInfoAMD& v
     encoder->EncodeUInt32Value(value.numPhysicalSgprs);
     encoder->EncodeUInt32Value(value.numAvailableVgprs);
     encoder->EncodeUInt32Value(value.numAvailableSgprs);
-    encoder->EncodeUInt32Array(value.computeWorkGroupSize, 3);
+    encoder->EncodeUInt32Array(value.computeWorkGroupSize, 3, false);
 }
 
 void encode_struct(ParameterEncoder* encoder, const VkPhysicalDeviceCornerSampledImageFeaturesNV& value)
@@ -2536,7 +2536,7 @@ void encode_struct(ParameterEncoder* encoder, const VkExportMemoryWin32HandleInf
 {
     encoder->EncodeEnumValue(value.sType);
     encode_pnext_struct(encoder, value.pNext);
-    encode_struct_ptr(encoder, value.pAttributes);
+    encode_struct_ptr(encoder, value.pAttributes, false);
     encoder->EncodeUInt32Value(value.dwAccess);
 }
 #endif /* VK_USE_PLATFORM_WIN32_KHR */
@@ -2547,12 +2547,12 @@ void encode_struct(ParameterEncoder* encoder, const VkWin32KeyedMutexAcquireRele
     encoder->EncodeEnumValue(value.sType);
     encode_pnext_struct(encoder, value.pNext);
     encoder->EncodeUInt32Value(value.acquireCount);
-    encoder->EncodeHandleIdArray(value.pAcquireSyncs, value.acquireCount);
-    encoder->EncodeUInt64Array(value.pAcquireKeys, value.acquireCount);
-    encoder->EncodeUInt32Array(value.pAcquireTimeoutMilliseconds, value.acquireCount);
+    encoder->EncodeHandleIdArray(value.pAcquireSyncs, value.acquireCount, false);
+    encoder->EncodeUInt64Array(value.pAcquireKeys, value.acquireCount, false);
+    encoder->EncodeUInt32Array(value.pAcquireTimeoutMilliseconds, value.acquireCount, false);
     encoder->EncodeUInt32Value(value.releaseCount);
-    encoder->EncodeHandleIdArray(value.pReleaseSyncs, value.releaseCount);
-    encoder->EncodeUInt64Array(value.pReleaseKeys, value.releaseCount);
+    encoder->EncodeHandleIdArray(value.pReleaseSyncs, value.releaseCount, false);
+    encoder->EncodeUInt64Array(value.pReleaseKeys, value.releaseCount, false);
 }
 #endif /* VK_USE_PLATFORM_WIN32_KHR */
 
@@ -2561,7 +2561,7 @@ void encode_struct(ParameterEncoder* encoder, const VkValidationFlagsEXT& value)
     encoder->EncodeEnumValue(value.sType);
     encode_pnext_struct(encoder, value.pNext);
     encoder->EncodeUInt32Value(value.disabledValidationCheckCount);
-    encoder->EncodeEnumArray(value.pDisabledValidationChecks, value.disabledValidationCheckCount);
+    encoder->EncodeEnumArray(value.pDisabledValidationChecks, value.disabledValidationCheckCount, false);
 }
 
 #ifdef VK_USE_PLATFORM_VI_NN
@@ -2652,7 +2652,7 @@ void encode_struct(ParameterEncoder* encoder, const VkIndirectCommandsLayoutCrea
     encoder->EncodeEnumValue(value.pipelineBindPoint);
     encoder->EncodeFlagsValue(value.flags);
     encoder->EncodeUInt32Value(value.tokenCount);
-    encode_struct_array(encoder, value.pTokens, value.tokenCount);
+    encode_struct_array(encoder, value.pTokens, value.tokenCount, false);
 }
 
 void encode_struct(ParameterEncoder* encoder, const VkCmdProcessCommandsInfoNVX& value)
@@ -2662,7 +2662,7 @@ void encode_struct(ParameterEncoder* encoder, const VkCmdProcessCommandsInfoNVX&
     encoder->EncodeHandleIdValue(value.objectTable);
     encoder->EncodeHandleIdValue(value.indirectCommandsLayout);
     encoder->EncodeUInt32Value(value.indirectCommandsTokenCount);
-    encode_struct_array(encoder, value.pIndirectCommandsTokens, value.indirectCommandsTokenCount);
+    encode_struct_array(encoder, value.pIndirectCommandsTokens, value.indirectCommandsTokenCount, false);
     encoder->EncodeUInt32Value(value.maxSequencesCount);
     encoder->EncodeHandleIdValue(value.targetCommandBuffer);
     encoder->EncodeHandleIdValue(value.sequencesCountBuffer);
@@ -2685,9 +2685,9 @@ void encode_struct(ParameterEncoder* encoder, const VkObjectTableCreateInfoNVX& 
     encoder->EncodeEnumValue(value.sType);
     encode_pnext_struct(encoder, value.pNext);
     encoder->EncodeUInt32Value(value.objectCount);
-    encoder->EncodeEnumArray(value.pObjectEntryTypes, value.objectCount);
-    encoder->EncodeUInt32Array(value.pObjectEntryCounts, value.objectCount);
-    encoder->EncodeFlagsArray(value.pObjectEntryUsageFlags, value.objectCount);
+    encoder->EncodeEnumArray(value.pObjectEntryTypes, value.objectCount, false);
+    encoder->EncodeUInt32Array(value.pObjectEntryCounts, value.objectCount, false);
+    encoder->EncodeFlagsArray(value.pObjectEntryUsageFlags, value.objectCount, false);
     encoder->EncodeUInt32Value(value.maxUniformBuffersPerDescriptor);
     encoder->EncodeUInt32Value(value.maxStorageBuffersPerDescriptor);
     encoder->EncodeUInt32Value(value.maxStorageImagesPerDescriptor);
@@ -2745,7 +2745,7 @@ void encode_struct(ParameterEncoder* encoder, const VkPipelineViewportWScalingSt
     encode_pnext_struct(encoder, value.pNext);
     encoder->EncodeVkBool32Value(value.viewportWScalingEnable);
     encoder->EncodeUInt32Value(value.viewportCount);
-    encode_struct_array(encoder, value.pViewportWScalings, value.viewportCount);
+    encode_struct_array(encoder, value.pViewportWScalings, value.viewportCount, false);
 }
 
 void encode_struct(ParameterEncoder* encoder, const VkSurfaceCapabilities2EXT& value)
@@ -2818,7 +2818,7 @@ void encode_struct(ParameterEncoder* encoder, const VkPresentTimesInfoGOOGLE& va
     encoder->EncodeEnumValue(value.sType);
     encode_pnext_struct(encoder, value.pNext);
     encoder->EncodeUInt32Value(value.swapchainCount);
-    encode_struct_array(encoder, value.pTimes, value.swapchainCount);
+    encode_struct_array(encoder, value.pTimes, value.swapchainCount, false);
 }
 
 void encode_struct(ParameterEncoder* encoder, const VkPhysicalDeviceMultiviewPerViewAttributesPropertiesNVX& value)
@@ -2842,7 +2842,7 @@ void encode_struct(ParameterEncoder* encoder, const VkPipelineViewportSwizzleSta
     encode_pnext_struct(encoder, value.pNext);
     encoder->EncodeFlagsValue(value.flags);
     encoder->EncodeUInt32Value(value.viewportCount);
-    encode_struct_array(encoder, value.pViewportSwizzles, value.viewportCount);
+    encode_struct_array(encoder, value.pViewportSwizzles, value.viewportCount, false);
 }
 
 void encode_struct(ParameterEncoder* encoder, const VkPhysicalDeviceDiscardRectanglePropertiesEXT& value)
@@ -2859,7 +2859,7 @@ void encode_struct(ParameterEncoder* encoder, const VkPipelineDiscardRectangleSt
     encoder->EncodeFlagsValue(value.flags);
     encoder->EncodeEnumValue(value.discardRectangleMode);
     encoder->EncodeUInt32Value(value.discardRectangleCount);
-    encode_struct_array(encoder, value.pDiscardRectangles, value.discardRectangleCount);
+    encode_struct_array(encoder, value.pDiscardRectangles, value.discardRectangleCount, false);
 }
 
 void encode_struct(ParameterEncoder* encoder, const VkPhysicalDeviceConservativeRasterizationPropertiesEXT& value)
@@ -2932,7 +2932,7 @@ void encode_struct(ParameterEncoder* encoder, const VkDebugUtilsObjectNameInfoEX
     encode_pnext_struct(encoder, value.pNext);
     encoder->EncodeEnumValue(value.objectType);
     encoder->EncodeUInt64Value(value.objectHandle);
-    encoder->EncodeString(value.pObjectName);
+    encoder->EncodeString(value.pObjectName, false);
 }
 
 void encode_struct(ParameterEncoder* encoder, const VkDebugUtilsObjectTagInfoEXT& value)
@@ -2943,15 +2943,15 @@ void encode_struct(ParameterEncoder* encoder, const VkDebugUtilsObjectTagInfoEXT
     encoder->EncodeUInt64Value(value.objectHandle);
     encoder->EncodeUInt64Value(value.tagName);
     encoder->EncodeSizeTValue(value.tagSize);
-    encoder->EncodeVoidArray(value.pTag, value.tagSize);
+    encoder->EncodeVoidArray(value.pTag, value.tagSize, false);
 }
 
 void encode_struct(ParameterEncoder* encoder, const VkDebugUtilsLabelEXT& value)
 {
     encoder->EncodeEnumValue(value.sType);
     encode_pnext_struct(encoder, value.pNext);
-    encoder->EncodeString(value.pLabelName);
-    encoder->EncodeFloatArray(value.color, 4);
+    encoder->EncodeString(value.pLabelName, false);
+    encoder->EncodeFloatArray(value.color, 4, false);
 }
 
 void encode_struct(ParameterEncoder* encoder, const VkDebugUtilsMessengerCallbackDataEXT& value)
@@ -2959,15 +2959,15 @@ void encode_struct(ParameterEncoder* encoder, const VkDebugUtilsMessengerCallbac
     encoder->EncodeEnumValue(value.sType);
     encode_pnext_struct(encoder, value.pNext);
     encoder->EncodeFlagsValue(value.flags);
-    encoder->EncodeString(value.pMessageIdName);
+    encoder->EncodeString(value.pMessageIdName, false);
     encoder->EncodeInt32Value(value.messageIdNumber);
-    encoder->EncodeString(value.pMessage);
+    encoder->EncodeString(value.pMessage, false);
     encoder->EncodeUInt32Value(value.queueLabelCount);
-    encode_struct_array(encoder, value.pQueueLabels, value.queueLabelCount);
+    encode_struct_array(encoder, value.pQueueLabels, value.queueLabelCount, false);
     encoder->EncodeUInt32Value(value.cmdBufLabelCount);
-    encode_struct_array(encoder, value.pCmdBufLabels, value.cmdBufLabelCount);
+    encode_struct_array(encoder, value.pCmdBufLabels, value.cmdBufLabelCount, false);
     encoder->EncodeUInt32Value(value.objectCount);
-    encode_struct_array(encoder, value.pObjects, value.objectCount);
+    encode_struct_array(encoder, value.pObjects, value.objectCount, false);
 }
 
 void encode_struct(ParameterEncoder* encoder, const VkDebugUtilsMessengerCreateInfoEXT& value)
@@ -3072,7 +3072,7 @@ void encode_struct(ParameterEncoder* encoder, const VkWriteDescriptorSetInlineUn
     encoder->EncodeEnumValue(value.sType);
     encode_pnext_struct(encoder, value.pNext);
     encoder->EncodeUInt32Value(value.dataSize);
-    encoder->EncodeVoidArray(value.pData, value.dataSize);
+    encoder->EncodeVoidArray(value.pData, value.dataSize, false);
 }
 
 void encode_struct(ParameterEncoder* encoder, const VkDescriptorPoolInlineUniformBlockCreateInfoEXT& value)
@@ -3095,7 +3095,7 @@ void encode_struct(ParameterEncoder* encoder, const VkSampleLocationsInfoEXT& va
     encoder->EncodeEnumValue(value.sampleLocationsPerPixel);
     encode_struct(encoder, value.sampleLocationGridSize);
     encoder->EncodeUInt32Value(value.sampleLocationsCount);
-    encode_struct_array(encoder, value.pSampleLocations, value.sampleLocationsCount);
+    encode_struct_array(encoder, value.pSampleLocations, value.sampleLocationsCount, false);
 }
 
 void encode_struct(ParameterEncoder* encoder, const VkAttachmentSampleLocationsEXT& value)
@@ -3115,9 +3115,9 @@ void encode_struct(ParameterEncoder* encoder, const VkRenderPassSampleLocationsB
     encoder->EncodeEnumValue(value.sType);
     encode_pnext_struct(encoder, value.pNext);
     encoder->EncodeUInt32Value(value.attachmentInitialSampleLocationsCount);
-    encode_struct_array(encoder, value.pAttachmentInitialSampleLocations, value.attachmentInitialSampleLocationsCount);
+    encode_struct_array(encoder, value.pAttachmentInitialSampleLocations, value.attachmentInitialSampleLocationsCount, false);
     encoder->EncodeUInt32Value(value.postSubpassSampleLocationsCount);
-    encode_struct_array(encoder, value.pPostSubpassSampleLocations, value.postSubpassSampleLocationsCount);
+    encode_struct_array(encoder, value.pPostSubpassSampleLocations, value.postSubpassSampleLocationsCount, false);
 }
 
 void encode_struct(ParameterEncoder* encoder, const VkPipelineSampleLocationsStateCreateInfoEXT& value)
@@ -3134,7 +3134,7 @@ void encode_struct(ParameterEncoder* encoder, const VkPhysicalDeviceSampleLocati
     encode_pnext_struct(encoder, value.pNext);
     encoder->EncodeFlagsValue(value.sampleLocationSampleCounts);
     encode_struct(encoder, value.maxSampleLocationGridSize);
-    encoder->EncodeFloatArray(value.sampleLocationCoordinateRange, 2);
+    encoder->EncodeFloatArray(value.sampleLocationCoordinateRange, 2, false);
     encoder->EncodeUInt32Value(value.sampleLocationSubPixelBits);
     encoder->EncodeVkBool32Value(value.variableSampleLocations);
 }
@@ -3191,7 +3191,7 @@ void encode_struct(ParameterEncoder* encoder, const VkPipelineCoverageModulation
     encoder->EncodeEnumValue(value.coverageModulationMode);
     encoder->EncodeVkBool32Value(value.coverageModulationTableEnable);
     encoder->EncodeUInt32Value(value.coverageModulationTableCount);
-    encoder->EncodeFloatArray(value.pCoverageModulationTable, value.coverageModulationTableCount);
+    encoder->EncodeFloatArray(value.pCoverageModulationTable, value.coverageModulationTableCount, false);
 }
 
 void encode_struct(ParameterEncoder* encoder, const VkValidationCacheCreateInfoEXT& value)
@@ -3200,7 +3200,7 @@ void encode_struct(ParameterEncoder* encoder, const VkValidationCacheCreateInfoE
     encode_pnext_struct(encoder, value.pNext);
     encoder->EncodeFlagsValue(value.flags);
     encoder->EncodeSizeTValue(value.initialDataSize);
-    encoder->EncodeVoidArray(value.pInitialData, value.initialDataSize);
+    encoder->EncodeVoidArray(value.pInitialData, value.initialDataSize, false);
 }
 
 void encode_struct(ParameterEncoder* encoder, const VkShaderModuleValidationCacheCreateInfoEXT& value)
@@ -3215,7 +3215,7 @@ void encode_struct(ParameterEncoder* encoder, const VkDescriptorSetLayoutBinding
     encoder->EncodeEnumValue(value.sType);
     encode_pnext_struct(encoder, value.pNext);
     encoder->EncodeUInt32Value(value.bindingCount);
-    encoder->EncodeFlagsArray(value.pBindingFlags, value.bindingCount);
+    encoder->EncodeFlagsArray(value.pBindingFlags, value.bindingCount, false);
 }
 
 void encode_struct(ParameterEncoder* encoder, const VkPhysicalDeviceDescriptorIndexingFeaturesEXT& value)
@@ -3278,7 +3278,7 @@ void encode_struct(ParameterEncoder* encoder, const VkDescriptorSetVariableDescr
     encoder->EncodeEnumValue(value.sType);
     encode_pnext_struct(encoder, value.pNext);
     encoder->EncodeUInt32Value(value.descriptorSetCount);
-    encoder->EncodeUInt32Array(value.pDescriptorCounts, value.descriptorSetCount);
+    encoder->EncodeUInt32Array(value.pDescriptorCounts, value.descriptorSetCount, false);
 }
 
 void encode_struct(ParameterEncoder* encoder, const VkDescriptorSetVariableDescriptorCountLayoutSupportEXT& value)
@@ -3291,7 +3291,7 @@ void encode_struct(ParameterEncoder* encoder, const VkDescriptorSetVariableDescr
 void encode_struct(ParameterEncoder* encoder, const VkShadingRatePaletteNV& value)
 {
     encoder->EncodeUInt32Value(value.shadingRatePaletteEntryCount);
-    encoder->EncodeEnumArray(value.pShadingRatePaletteEntries, value.shadingRatePaletteEntryCount);
+    encoder->EncodeEnumArray(value.pShadingRatePaletteEntries, value.shadingRatePaletteEntryCount, false);
 }
 
 void encode_struct(ParameterEncoder* encoder, const VkPipelineViewportShadingRateImageStateCreateInfoNV& value)
@@ -3300,7 +3300,7 @@ void encode_struct(ParameterEncoder* encoder, const VkPipelineViewportShadingRat
     encode_pnext_struct(encoder, value.pNext);
     encoder->EncodeVkBool32Value(value.shadingRateImageEnable);
     encoder->EncodeUInt32Value(value.viewportCount);
-    encode_struct_array(encoder, value.pShadingRatePalettes, value.viewportCount);
+    encode_struct_array(encoder, value.pShadingRatePalettes, value.viewportCount, false);
 }
 
 void encode_struct(ParameterEncoder* encoder, const VkPhysicalDeviceShadingRateImageFeaturesNV& value)
@@ -3332,7 +3332,7 @@ void encode_struct(ParameterEncoder* encoder, const VkCoarseSampleOrderCustomNV&
     encoder->EncodeEnumValue(value.shadingRate);
     encoder->EncodeUInt32Value(value.sampleCount);
     encoder->EncodeUInt32Value(value.sampleLocationCount);
-    encode_struct_array(encoder, value.pSampleLocations, value.sampleLocationCount);
+    encode_struct_array(encoder, value.pSampleLocations, value.sampleLocationCount, false);
 }
 
 void encode_struct(ParameterEncoder* encoder, const VkPipelineViewportCoarseSampleOrderStateCreateInfoNV& value)
@@ -3341,7 +3341,7 @@ void encode_struct(ParameterEncoder* encoder, const VkPipelineViewportCoarseSamp
     encode_pnext_struct(encoder, value.pNext);
     encoder->EncodeEnumValue(value.sampleOrderType);
     encoder->EncodeUInt32Value(value.customSampleOrderCount);
-    encode_struct_array(encoder, value.pCustomSampleOrders, value.customSampleOrderCount);
+    encode_struct_array(encoder, value.pCustomSampleOrders, value.customSampleOrderCount, false);
 }
 
 void encode_struct(ParameterEncoder* encoder, const VkRaytracingPipelineCreateInfoNVX& value)
@@ -3350,8 +3350,8 @@ void encode_struct(ParameterEncoder* encoder, const VkRaytracingPipelineCreateIn
     encode_pnext_struct(encoder, value.pNext);
     encoder->EncodeFlagsValue(value.flags);
     encoder->EncodeUInt32Value(value.stageCount);
-    encode_struct_array(encoder, value.pStages, value.stageCount);
-    encoder->EncodeUInt32Array(value.pGroupNumbers, value.stageCount);
+    encode_struct_array(encoder, value.pStages, value.stageCount, false);
+    encoder->EncodeUInt32Array(value.pGroupNumbers, value.stageCount, false);
     encoder->EncodeUInt32Value(value.maxRecursionDepth);
     encoder->EncodeHandleIdValue(value.layout);
     encoder->EncodeHandleIdValue(value.basePipelineHandle);
@@ -3409,7 +3409,7 @@ void encode_struct(ParameterEncoder* encoder, const VkAccelerationStructureCreat
     encoder->EncodeVkDeviceSizeValue(value.compactedSize);
     encoder->EncodeUInt32Value(value.instanceCount);
     encoder->EncodeUInt32Value(value.geometryCount);
-    encode_struct_array(encoder, value.pGeometries, value.geometryCount);
+    encode_struct_array(encoder, value.pGeometries, value.geometryCount, false);
 }
 
 void encode_struct(ParameterEncoder* encoder, const VkBindAccelerationStructureMemoryInfoNVX& value)
@@ -3420,7 +3420,7 @@ void encode_struct(ParameterEncoder* encoder, const VkBindAccelerationStructureM
     encoder->EncodeHandleIdValue(value.memory);
     encoder->EncodeVkDeviceSizeValue(value.memoryOffset);
     encoder->EncodeUInt32Value(value.deviceIndexCount);
-    encoder->EncodeUInt32Array(value.pDeviceIndices, value.deviceIndexCount);
+    encoder->EncodeUInt32Array(value.pDeviceIndices, value.deviceIndexCount, false);
 }
 
 void encode_struct(ParameterEncoder* encoder, const VkDescriptorAccelerationStructureInfoNVX& value)
@@ -3428,7 +3428,7 @@ void encode_struct(ParameterEncoder* encoder, const VkDescriptorAccelerationStru
     encoder->EncodeEnumValue(value.sType);
     encode_pnext_struct(encoder, value.pNext);
     encoder->EncodeUInt32Value(value.accelerationStructureCount);
-    encoder->EncodeHandleIdArray(value.pAccelerationStructures, value.accelerationStructureCount);
+    encoder->EncodeHandleIdArray(value.pAccelerationStructures, value.accelerationStructureCount, false);
 }
 
 void encode_struct(ParameterEncoder* encoder, const VkAccelerationStructureMemoryRequirementsInfoNVX& value)
@@ -3528,7 +3528,7 @@ void encode_struct(ParameterEncoder* encoder, const VkPipelineVertexInputDivisor
     encoder->EncodeEnumValue(value.sType);
     encode_pnext_struct(encoder, value.pNext);
     encoder->EncodeUInt32Value(value.vertexBindingDivisorCount);
-    encode_struct_array(encoder, value.pVertexBindingDivisors, value.vertexBindingDivisorCount);
+    encode_struct_array(encoder, value.pVertexBindingDivisors, value.vertexBindingDivisorCount, false);
 }
 
 void encode_struct(ParameterEncoder* encoder, const VkPhysicalDeviceVertexAttributeDivisorFeaturesEXT& value)
@@ -3561,11 +3561,11 @@ void encode_struct(ParameterEncoder* encoder, const VkPhysicalDeviceMeshShaderPr
     encode_pnext_struct(encoder, value.pNext);
     encoder->EncodeUInt32Value(value.maxDrawMeshTasksCount);
     encoder->EncodeUInt32Value(value.maxTaskWorkGroupInvocations);
-    encoder->EncodeUInt32Array(value.maxTaskWorkGroupSize, 3);
+    encoder->EncodeUInt32Array(value.maxTaskWorkGroupSize, 3, false);
     encoder->EncodeUInt32Value(value.maxTaskTotalMemorySize);
     encoder->EncodeUInt32Value(value.maxTaskOutputCount);
     encoder->EncodeUInt32Value(value.maxMeshWorkGroupInvocations);
-    encoder->EncodeUInt32Array(value.maxMeshWorkGroupSize, 3);
+    encoder->EncodeUInt32Array(value.maxMeshWorkGroupSize, 3, false);
     encoder->EncodeUInt32Value(value.maxMeshTotalMemorySize);
     encoder->EncodeUInt32Value(value.maxMeshOutputVertices);
     encoder->EncodeUInt32Value(value.maxMeshOutputPrimitives);
@@ -3599,7 +3599,7 @@ void encode_struct(ParameterEncoder* encoder, const VkPipelineViewportExclusiveS
     encoder->EncodeEnumValue(value.sType);
     encode_pnext_struct(encoder, value.pNext);
     encoder->EncodeUInt32Value(value.exclusiveScissorCount);
-    encode_struct_array(encoder, value.pExclusiveScissors, value.exclusiveScissorCount);
+    encode_struct_array(encoder, value.pExclusiveScissors, value.exclusiveScissorCount, false);
 }
 
 void encode_struct(ParameterEncoder* encoder, const VkPhysicalDeviceExclusiveScissorFeaturesNV& value)

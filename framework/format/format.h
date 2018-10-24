@@ -51,13 +51,17 @@ constexpr uint32_t MakeCompressedBlockType(uint32_t block_type)
 // clang-format off
 enum BlockType : uint32_t
 {
-    kUnknownBlock                = 0,
-    kFrameBlock                  = 1,
-    kStateBlock                  = 2, // A group of metadata and apicall blocks representing the initial state for a trimmed file.
-    kMetaDataBlock               = 3,
-    kFunctionCallBlock           = 4,
-    kCompressedMetaDataBlock     = MakeCompressedBlockType(kMetaDataBlock),
-    kCompressedFunctionCallBlock = MakeCompressedBlockType(kFunctionCallBlock)
+    kUnknownBlock                    = 0,
+    kFrameBlock                      = 1,
+    kStateBlock                      = 2, // A group of metadata and apicall blocks representing the initial state for a trimmed file.
+    kMetaDataBlock                   = 3,
+    kFunctionCallBlock               = 4,
+    kFunctionCallPreBlock            = 5,
+    kFunctionCallPostBlock           = 6,
+    kCompressedMetaDataBlock         = MakeCompressedBlockType(kMetaDataBlock),
+    kCompressedFunctionCallBlock     = MakeCompressedBlockType(kFunctionCallBlock),
+    kCompressedFunctionCallPreBlock  = MakeCompressedBlockType(kFunctionCallBlock),
+    kCompressedFunctionCallPostBlock = MakeCompressedBlockType(kFunctionCallBlock)
 };
 
 enum MetaDataType : uint32_t

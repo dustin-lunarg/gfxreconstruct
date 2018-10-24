@@ -691,7 +691,7 @@ class BaseGenerator(OutputGenerator):
 
     #
     # Generate a parameter encoder method call invocation.
-    def makeEncoderMethodCall(self, value, values, prefix):
+    def makeEncoderMethodCall(self, value, values, prefix, omitData):
         args = [prefix + value.name]
 
         isStruct = False
@@ -749,6 +749,13 @@ class BaseGenerator(OutputGenerator):
                 methodCall += 'Ptr' * value.pointerCount
             else:
                 methodCall += 'Value'
+
+        # For arrays and pointers, add a Boolean value to indicate data should be omitted from the encoding.
+        if value.isArray or value.isPointer and (not typeName in self.EXTERNAL_OBJECT_TYPES):
+            if omitData:
+                args.append('true')
+            else:
+                args.append('false')
 
         return '{}({})'.format(methodCall, ', '.join(args))
 

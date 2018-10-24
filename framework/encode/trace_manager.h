@@ -51,6 +51,13 @@ class TraceManager
         kPageGuard = 2
     };
 
+    enum ApiCallBlockType
+    {
+        Unified  = 0,
+        PreCall  = 1,
+        PostCall = 2
+    };
+
     struct UpdateTemplateEntryInfo
     {
         UpdateTemplateEntryInfo(uint32_t c, size_t o, size_t s) : count(c), offset(o), stride(s) {}
@@ -77,7 +84,7 @@ class TraceManager
 
     static TraceManager* Get() { return instance_; }
 
-    ParameterEncoder* BeginApiCallTrace(format::ApiCallId call_id);
+    ParameterEncoder* BeginApiCallTrace(format::ApiCallId call_id, ApiCallBlockType block_type);
 
     void EndApiCallTrace(ParameterEncoder* encoder);
 
@@ -153,6 +160,7 @@ class TraceManager
       public:
         const uint32_t                            thread_id_;
         format::ApiCallId                         call_id_;
+        ApiCallBlockType                          block_type_;
         uint32_t                                  call_begin_time_;
         uint32_t                                  call_end_time_;
         std::unique_ptr<util::MemoryOutputStream> parameter_buffer_;
