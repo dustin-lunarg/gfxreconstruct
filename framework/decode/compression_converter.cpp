@@ -23,6 +23,16 @@
 BRIMSTONE_BEGIN_NAMESPACE(brimstone)
 BRIMSTONE_BEGIN_NAMESPACE(decode)
 
+// Array of API call block types, designed to be indexed by the TraceManager::ApiCallBlockType values.
+const format::BlockType kBlockTypes[] = { format::BlockType::kFunctionCallBlock,
+                                          format::BlockType::kFunctionCallPreBlock,
+                                          format::BlockType::kFunctionCallPostBlock };
+
+// Array of compressed API call block types, designed to be indexed by the TraceManager::ApiCallBlockType values.
+const format::BlockType kCompressedBlockTypes[] = { format::BlockType::kCompressedFunctionCallBlock,
+                                                    format::BlockType::kCompressedFunctionCallPreBlock,
+                                                    format::BlockType::kCompressedFunctionCallPostBlock };
+
 CompressionConverter::CompressionConverter() :
     bytes_written_(0), compressor_(nullptr), decompressing_(false), write_thread_id_(false),
     write_begin_end_times_(false)
@@ -120,8 +130,36 @@ void CompressionConverter::Destroy()
 
 void CompressionConverter::DecodeFunctionCall(format::ApiCallId             call_id,
                                               const format::ApiCallOptions& call_options,
-                                              const uint8_t*                buffer,
-                                              size_t                        buffer_size)
+                                              const uint8_t*                param_buffer,
+                                              size_t                        param_buffer_size)
+{
+    ProcessFunctionCallBlock(ApiCallBlockType::Unified, call_id, call_options, param_buffer, param_buffer_size);
+}
+
+void CompressionConverter::DecodeFunctionCall(format::ApiCallId             call_id,
+                                              const format::ApiCallOptions& pre_call_options,
+                                              const uint8_t*                pre_buffer,
+                                              size_t                        pre_buffer_size,
+                                              const format::ApiCallOptions& post_call_options,
+                                              const uint8_t*                post_buffer,
+                                              size_t                        post_buffer_size)
+{
+    if (pre_buffer != nullptr)
+    {
+        ProcessFunctionCallBlock(ApiCallBlockType::PreCall, call_id, pre_call_options, pre_buffer, pre_buffer_size);
+    }
+
+    if (post_buffer != nullptr)
+    {
+        ProcessFunctionCallBlock(ApiCallBlockType::PostCall, call_id, post_call_options, post_buffer, post_buffer_size);
+    }
+}
+
+void CompressionConverter::ProcessFunctionCallBlock(ApiCallBlockType              block_type,
+                                                    format::ApiCallId             call_id,
+                                                    const format::ApiCallOptions& call_options,
+                                                    const uint8_t*                param_buffer,
+                                                    size_t                        param_buffer_size)
 {
     bool write_uncompressed = decompressing_;
 
@@ -130,13 +168,13 @@ void CompressionConverter::DecodeFunctionCall(format::ApiCallId             call
         // Compress the buffer with the new compression format and write to the new file.
         format::CompressedFunctionCallHeader compressed_func_call_header = {};
         size_t                               packet_size                 = 0;
-        size_t compressed_size = compressor_->Compress(buffer_size, buffer, &compressed_buffer_);
+        size_t compressed_size = compressor_->Compress(param_buffer_size, param_buffer, &compressed_buffer_);
 
-        if (0 < compressed_size && compressed_size < buffer_size)
+        if (0 < compressed_size && compressed_size < param_buffer_size)
         {
-            compressed_func_call_header.block_header.type = format::BlockType::kCompressedFunctionCallBlock;
+            compressed_func_call_header.block_header.type = kCompressedBlockTypes[block_type];
             compressed_func_call_header.api_call_id       = call_id;
-            compressed_func_call_header.uncompressed_size = buffer_size;
+            compressed_func_call_header.uncompressed_size = param_buffer_size;
 
             packet_size += sizeof(compressed_func_call_header.api_call_id) +
                            sizeof(compressed_func_call_header.uncompressed_size) + compressed_size;
@@ -183,10 +221,10 @@ void CompressionConverter::DecodeFunctionCall(format::ApiCallId             call
         format::FunctionCallHeader func_call_header = {};
         size_t                     packet_size      = 0;
 
-        func_call_header.block_header.type = format::BlockType::kFunctionCallBlock;
+        func_call_header.block_header.type = kBlockTypes[block_type];
         func_call_header.api_call_id       = call_id;
 
-        packet_size += sizeof(func_call_header.api_call_id) + buffer_size;
+        packet_size += sizeof(func_call_header.api_call_id) + param_buffer_size;
 
         if (write_thread_id_)
         {
@@ -215,7 +253,7 @@ void CompressionConverter::DecodeFunctionCall(format::ApiCallId             call
         }
 
         // Write parameter data.
-        bytes_written_ += file_stream_->Write(buffer, buffer_size);
+        bytes_written_ += file_stream_->Write(param_buffer, param_buffer_size);
     }
 }
 

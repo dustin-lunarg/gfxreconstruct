@@ -19,7 +19,9 @@
 
 #include <algorithm>
 #include <cstdio>
+#include <deque>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 #include "util/defines.h"
@@ -58,21 +60,50 @@ class FileProcessor
     uint64_t NumBytesRead() { return bytes_read_; }
 
   private:
+    struct SplitApiCallInfo
+    {
+        uint32_t               thread_id{ 0 };
+        bool                   complete{ false };
+        format::ApiCallId      call_id{ format::ApiCallId::ApiCall_Unknown };
+        format::ApiCallOptions pre_options;
+        std::vector<uint8_t>   pre_buffer;
+        size_t                 pre_buffer_size;
+        format::ApiCallOptions post_options;
+        std::vector<uint8_t>   post_buffer;
+        size_t                 post_buffer_size;
+    };
+
+    typedef std::deque<SplitApiCallInfo*>                   ActiveCalls;
+    typedef std::unordered_map<uint32_t, SplitApiCallInfo*> CurrentThreadCalls;
+
+  private:
     bool ReadFileHeader();
 
     bool ReadBlockHeader(format::BlockHeader* block_header);
 
-    bool ReadParameterBuffer(size_t buffer_size);
+    bool ReadParameterBuffer(size_t buffer_size, std::vector<uint8_t>* parameter_buffer);
 
-    bool ReadCompressedParameterBuffer(size_t  compressed_buffer_size,
-                                       size_t  expected_uncompressed_size,
-                                       size_t* uncompressed_buffer_size);
+    bool ReadCompressedParameterBuffer(size_t                compressed_buffer_size,
+                                       size_t                expected_uncompressed_size,
+                                       size_t*               uncompressed_buffer_size,
+                                       std::vector<uint8_t>* compressed_parameter_buffer,
+                                       std::vector<uint8_t>* parameter_buffer);
 
     bool ReadBytes(void* buffer, size_t buffer_size);
 
-    bool SkipBytes(size_t skip_size);
+    bool SkipBytes(uint64_t skip_size);
 
-    bool ProcessFunctionCall(const format::BlockHeader& block_header, format::ApiCallId call_id);
+    bool ProcessFunctionCallUnified(const format::BlockHeader& block_header, format::ApiCallId call_id);
+
+    bool ProcessFunctionCallPre(const format::BlockHeader& block_header, format::ApiCallId call_id);
+
+    bool ProcessFunctionCallPost(const format::BlockHeader& block_header, format::ApiCallId call_id);
+
+    bool ProcessFunctionCallCommon(const format::BlockHeader& block_header,
+                                   format::ApiCallId          call_id,
+                                   format::ApiCallOptions*    call_options,
+                                   std::vector<uint8_t>*      parameter_buffer,
+                                   size_t*                    parameter_buffer_size);
 
     bool ProcessMetaData(const format::BlockHeader& block_header, format::MetaDataType meta_type);
 
@@ -85,6 +116,8 @@ class FileProcessor
         return (file_descriptor_ && !feof(file_descriptor_) && !ferror(file_descriptor_)) ? true : false;
     }
 
+    void ProcessPendingCalls();
+
   private:
     FILE*                               file_descriptor_;
     std::string                         filename_;
@@ -93,7 +126,9 @@ class FileProcessor
     format::EnabledOptions              enabled_options_;
     uint64_t                            bytes_read_;
     std::vector<ApiDecoder*>            decoders_;
-    std::vector<uint8_t>                parameter_buffer_;
+    CurrentThreadCalls                  current_thread_calls_;
+    ActiveCalls                         active_calls_;
+    std::vector<uint8_t>                parameter_buffer_; // Single threaded parameter buffer.
     std::vector<uint8_t>                compressed_parameter_buffer_;
     util::Compressor*                   compressor_;
 };

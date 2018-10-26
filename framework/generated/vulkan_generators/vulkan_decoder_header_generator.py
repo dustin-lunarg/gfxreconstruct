@@ -63,8 +63,15 @@ class VulkanDecoderHeaderGenerator(BaseGenerator):
         write('    virtual ~VulkanDecoder() { }\n', file=self.outFile)
         write('    virtual void DecodeFunctionCall(format::ApiCallId             call_id,', file=self.outFile)
         write('                                    const format::ApiCallOptions& call_options,', file=self.outFile)
-        write('                                    const uint8_t*                parameter_buffer,', file=self.outFile)
-        write('                                    size_t                        buffer_size) override;\n', file=self.outFile)
+        write('                                    const uint8_t*                param_buffer,', file=self.outFile)
+        write('                                    size_t                        param_buffer_size) override;\n', file=self.outFile)
+        write('    virtual void DecodeFunctionCall(format::ApiCallId             call_id,', file=self.outFile)
+        write('                                    const format::ApiCallOptions& pre_call_options,', file=self.outFile)
+        write('                                    const uint8_t*                pre_buffer,', file=self.outFile)
+        write('                                    size_t                        pre_buffer_size,', file=self.outFile)
+        write('                                    const format::ApiCallOptions& post_call_options,', file=self.outFile)
+        write('                                    const uint8_t*                post_buffer,', file=self.outFile)
+        write('                                    size_t                        post_buffer_size) override;\n', file=self.outFile)
         write('  private:', end='', file=self.outFile)
 
     # Method override
@@ -90,6 +97,8 @@ class VulkanDecoderHeaderGenerator(BaseGenerator):
         first = True
         for cmd in self.featureCmdParams:
             cmddef = '' if first else '\n'
-            cmddef += '    size_t Decode_{}(const uint8_t* parameter_buffer, size_t buffer_size);'.format(cmd)
+            cmddef += '    size_t Decode_{}(const uint8_t* param_buffer, size_t param_buffer_size);\n'.format(cmd)
+            cmddef += '\n'
+            cmddef += '    size_t Decode_{}(const uint8_t* pre_buffer, size_t pre_buffer_size, const uint8_t* post_buffer, size_t post_buffer_size);'.format(cmd)
             write(cmddef, file=self.outFile)
             first = False

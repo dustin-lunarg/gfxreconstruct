@@ -82,7 +82,11 @@ bool FileProcessor::ProcessNextFrame()
 
         if (success)
         {
-            if (format::RemoveCompressedBlockBit(block_header.type) == format::BlockType::kFunctionCallBlock)
+            format::BlockType base_type = format::RemoveCompressedBlockBit(block_header.type);
+
+            if ((base_type == format::BlockType::kFunctionCallBlock) ||
+                (base_type == format::BlockType::kFunctionCallPreBlock) ||
+                (base_type == format::BlockType::kFunctionCallPostBlock))
             {
                 format::ApiCallId api_call_id = format::ApiCallId::ApiCall_Unknown;
 
@@ -90,10 +94,21 @@ bool FileProcessor::ProcessNextFrame()
 
                 if (success)
                 {
-                    success = ProcessFunctionCall(block_header, api_call_id);
+                    if (base_type == format::BlockType::kFunctionCallBlock)
+                    {
+                        success = ProcessFunctionCallUnified(block_header, api_call_id);
+                    }
+                    else if (base_type == format::BlockType::kFunctionCallPreBlock)
+                    {
+                        success = ProcessFunctionCallPre(block_header, api_call_id);
+                    }
+                    else if (base_type == format::BlockType::kFunctionCallPostBlock)
+                    {
+                        success = ProcessFunctionCallPost(block_header, api_call_id);
+                    }
 
                     // Break from loop on frame delimiter.
-                    if (IsFrameDelimiter(api_call_id))
+                    if ((base_type != format::BlockType::kFunctionCallPreBlock) && IsFrameDelimiter(api_call_id))
                     {
                         break;
                     }
@@ -122,8 +137,7 @@ bool FileProcessor::ProcessNextFrame()
             {
                 // Unrecognized block type.
                 BRIMSTONE_LOG_WARNING("Skipping unrecognized file block with type %u", block_header.type);
-                BRIMSTONE_CHECK_CONVERSION_DATA_LOSS(size_t, block_header.size);
-                success = SkipBytes(static_cast<size_t>(block_header.size));
+                success = SkipBytes(block_header.size);
             }
 
             if (success)
@@ -233,40 +247,49 @@ bool FileProcessor::ReadBlockHeader(format::BlockHeader* block_header)
     return success;
 }
 
-bool FileProcessor::ReadParameterBuffer(size_t buffer_size)
+bool FileProcessor::ReadParameterBuffer(size_t buffer_size, std::vector<uint8_t>* parameter_buffer)
 {
-    if (buffer_size > parameter_buffer_.size())
+    assert(parameter_buffer != nullptr);
+
+    if (buffer_size > parameter_buffer->size())
     {
-        parameter_buffer_.resize(buffer_size);
+        parameter_buffer->resize(buffer_size);
     }
 
-    return ReadBytes(parameter_buffer_.data(), buffer_size);
+    return ReadBytes(parameter_buffer->data(), buffer_size);
 }
 
-bool FileProcessor::ReadCompressedParameterBuffer(size_t  compressed_buffer_size,
-                                                  size_t  expected_uncompressed_size,
-                                                  size_t* uncompressed_buffer_size)
+bool FileProcessor::ReadCompressedParameterBuffer(size_t                compressed_buffer_size,
+                                                  size_t                expected_uncompressed_size,
+                                                  size_t*               uncompressed_buffer_size,
+                                                  std::vector<uint8_t>* compressed_parameter_buffer,
+                                                  std::vector<uint8_t>* parameter_buffer)
 {
-    if (compressed_buffer_size > compressed_parameter_buffer_.size())
+    assert(compressed_parameter_buffer != nullptr);
+    assert(parameter_buffer != nullptr);
+
+    if (compressed_buffer_size > compressed_parameter_buffer->size())
     {
-        compressed_parameter_buffer_.resize(compressed_buffer_size);
+        compressed_parameter_buffer->resize(compressed_buffer_size);
     }
 
-    if (ReadBytes(compressed_parameter_buffer_.data(), compressed_buffer_size))
+    if (ReadBytes(compressed_parameter_buffer->data(), compressed_buffer_size))
     {
-        if (parameter_buffer_.size() < expected_uncompressed_size)
+        if (parameter_buffer->size() < expected_uncompressed_size)
         {
-            parameter_buffer_.resize(expected_uncompressed_size);
+            parameter_buffer->resize(expected_uncompressed_size);
         }
 
         size_t uncompressed_size = compressor_->Decompress(
-            compressed_buffer_size, compressed_parameter_buffer_, expected_uncompressed_size, &parameter_buffer_);
+            compressed_buffer_size, (*compressed_parameter_buffer), expected_uncompressed_size, parameter_buffer);
+
         if ((0 < uncompressed_size) && (uncompressed_size == expected_uncompressed_size))
         {
             *uncompressed_buffer_size = uncompressed_size;
             return true;
         }
     }
+
     return false;
 }
 
@@ -277,7 +300,7 @@ bool FileProcessor::ReadBytes(void* buffer, size_t buffer_size)
     return (bytes_read == buffer_size) ? true : false;
 }
 
-bool FileProcessor::SkipBytes(size_t skip_size)
+bool FileProcessor::SkipBytes(uint64_t skip_size)
 {
     bool success = util::platform::FileSeek(file_descriptor_, skip_size, util::platform::FileSeekCurrent);
 
@@ -290,19 +313,105 @@ bool FileProcessor::SkipBytes(size_t skip_size)
     return success;
 }
 
-bool FileProcessor::ProcessFunctionCall(const format::BlockHeader& block_header, format::ApiCallId call_id)
+bool FileProcessor::ProcessFunctionCallUnified(const format::BlockHeader& block_header, format::ApiCallId call_id)
 {
-    bool                   success               = true;
-    size_t                 parameter_buffer_size = static_cast<size_t>(block_header.size) - sizeof(call_id);
-    uint64_t               uncompressed_size     = 0;
     format::ApiCallOptions call_options          = {};
+    size_t                 parameter_buffer_size = 0;
+    bool                   success =
+        ProcessFunctionCallCommon(block_header, call_id, &call_options, &parameter_buffer_, &parameter_buffer_size);
+
+    if (success)
+    {
+        for (auto decoder : decoders_)
+        {
+            if (decoder->SupportsApiCall(call_id))
+            {
+                decoder->DecodeFunctionCall(call_id, call_options, parameter_buffer_.data(), parameter_buffer_size);
+            }
+        }
+    }
+
+    return success;
+}
+
+bool FileProcessor::ProcessFunctionCallPre(const format::BlockHeader& block_header, format::ApiCallId call_id)
+{
+    format::ApiCallOptions call_options          = {};
+    size_t                 parameter_buffer_size = 0;
+    bool                   success =
+        ProcessFunctionCallCommon(block_header, call_id, &call_options, &parameter_buffer_, &parameter_buffer_size);
+
+    if (success)
+    {
+        SplitApiCallInfo* info = new SplitApiCallInfo;
+
+        info->thread_id       = call_options.thread_id;
+        info->complete        = false;
+        info->call_id         = call_id;
+        info->pre_options     = call_options;
+        info->pre_buffer_size = parameter_buffer_size;
+        info->pre_buffer.swap(parameter_buffer_);
+
+        current_thread_calls_[call_options.thread_id] = info;
+        active_calls_.push_back(info);
+    }
+
+    return success;
+}
+
+bool FileProcessor::ProcessFunctionCallPost(const format::BlockHeader& block_header, format::ApiCallId call_id)
+{
+    format::ApiCallOptions call_options          = {};
+    size_t                 parameter_buffer_size = 0;
+    bool                   success =
+        ProcessFunctionCallCommon(block_header, call_id, &call_options, &parameter_buffer_, &parameter_buffer_size);
+
+    if (success)
+    {
+        auto info = current_thread_calls_[call_options.thread_id];
+        assert(info != nullptr);
+
+        if (info != nullptr)
+        {
+            assert(info->thread_id == call_options.thread_id);
+            assert(info->call_id == call_id);
+
+            current_thread_calls_[call_options.thread_id] = nullptr;
+
+            info->complete         = true;
+            info->post_options     = call_options;
+            info->post_buffer_size = parameter_buffer_size;
+            info->post_buffer.swap(parameter_buffer_);
+
+            ProcessPendingCalls();
+        }
+    }
+
+    return success;
+}
+
+bool FileProcessor::ProcessFunctionCallCommon(const format::BlockHeader& block_header,
+                                              format::ApiCallId          call_id,
+                                              format::ApiCallOptions*    call_options,
+                                              std::vector<uint8_t>*      parameter_buffer,
+                                              size_t*                    parameter_buffer_size)
+{
+    assert(call_options != nullptr);
+    assert(parameter_buffer != nullptr);
+    assert(parameter_buffer_size != nullptr);
+
+    BRIMSTONE_CHECK_CONVERSION_DATA_LOSS(size_t, block_header.size);
+
+    bool     success           = true;
+    size_t   data_size         = static_cast<size_t>(block_header.size) - sizeof(call_id);
+    uint64_t uncompressed_size = 0;
 
     if (format::IsBlockCompressed(block_header.type))
     {
         assert(compressor_ != nullptr);
         if (compressor_ != nullptr)
         {
-            parameter_buffer_size -= sizeof(uncompressed_size);
+            data_size -= sizeof(uncompressed_size);
             success = ReadBytes(&uncompressed_size, sizeof(uncompressed_size));
         }
         else
@@ -314,16 +423,16 @@ bool FileProcessor::ProcessFunctionCall(const format::BlockHeader& block_header,
 
     if (success && enabled_options_.record_thread_id)
     {
-        parameter_buffer_size -= sizeof(call_options.thread_id);
-        success = ReadBytes(&call_options.thread_id, sizeof(call_options.thread_id));
+        data_size -= sizeof(call_options->thread_id);
+        success = ReadBytes(&(call_options->thread_id), sizeof(call_options->thread_id));
     }
 
     if (success && enabled_options_.record_begin_end_timestamp)
     {
-        parameter_buffer_size -= sizeof(call_options.begin_time) + sizeof(call_options.end_time);
+        data_size -= sizeof(call_options->begin_time) + sizeof(call_options->end_time);
 
-        success = ReadBytes(&call_options.begin_time, sizeof(call_options.begin_time));
-        success |= ReadBytes(&call_options.end_time, sizeof(call_options.end_time));
+        success = ReadBytes(&(call_options->begin_time), sizeof(call_options->begin_time));
+        success |= ReadBytes(&(call_options->end_time), sizeof(call_options->end_time));
     }
 
     if (success)
@@ -333,34 +442,31 @@ bool FileProcessor::ProcessFunctionCall(const format::BlockHeader& block_header,
             BRIMSTONE_CHECK_CONVERSION_DATA_LOSS(size_t, uncompressed_size);
 
             size_t actual_size = 0;
-            success            = ReadCompressedParameterBuffer(
-                parameter_buffer_size, static_cast<size_t>(uncompressed_size), &actual_size);
+            success            = ReadCompressedParameterBuffer(data_size,
+                                                    static_cast<size_t>(uncompressed_size),
+                                                    &actual_size,
+                                                    &compressed_parameter_buffer_,
+                                                    parameter_buffer);
 
             if (success)
             {
                 assert(actual_size == uncompressed_size);
-                parameter_buffer_size = static_cast<size_t>(uncompressed_size);
+                (*parameter_buffer_size) = actual_size;
             }
         }
         else
         {
-            success = ReadParameterBuffer(parameter_buffer_size);
+            success = ReadParameterBuffer(data_size, parameter_buffer);
+
+            if (success)
+            {
+                (*parameter_buffer_size) = data_size;
+            }
         }
     }
     else
     {
         BRIMSTONE_LOG_ERROR("Failed to read function call block header");
-    }
-
-    if (success)
-    {
-        for (auto decoder : decoders_)
-        {
-            if (decoder->SupportsApiCall(call_id))
-            {
-                decoder->DecodeFunctionCall(call_id, call_options, parameter_buffer_.data(), parameter_buffer_size);
-            }
-        }
     }
 
     return success;
@@ -392,8 +498,11 @@ bool FileProcessor::ProcessMetaData(const format::BlockHeader& block_header, for
                                              sizeof(header.memory_id) - sizeof(header.memory_offset) -
                                              sizeof(header.memory_size);
 
-                    success = ReadCompressedParameterBuffer(
-                        compressed_size, static_cast<size_t>(header.memory_size), &uncompressed_size);
+                    success = ReadCompressedParameterBuffer(compressed_size,
+                                                            static_cast<size_t>(header.memory_size),
+                                                            &uncompressed_size,
+                                                            &compressed_parameter_buffer_,
+                                                            &parameter_buffer_);
                 }
                 else
                 {
@@ -403,7 +512,7 @@ bool FileProcessor::ProcessMetaData(const format::BlockHeader& block_header, for
             }
             else
             {
-                success = ReadParameterBuffer(static_cast<size_t>(header.memory_size));
+                success = ReadParameterBuffer(static_cast<size_t>(header.memory_size), &parameter_buffer_);
             }
         }
         else
@@ -455,7 +564,7 @@ bool FileProcessor::ProcessMetaData(const format::BlockHeader& block_header, for
         if (success)
         {
             BRIMSTONE_CHECK_CONVERSION_DATA_LOSS(size_t, header.message_size);
-            success = ReadParameterBuffer(static_cast<size_t>(header.message_size));
+            success = ReadParameterBuffer(static_cast<size_t>(header.message_size), &parameter_buffer_);
         }
         else
         {
@@ -489,6 +598,36 @@ bool FileProcessor::IsFrameDelimiter(format::ApiCallId call_id) const
     // TODO: IDs of API calls that were treated as frame delimiters by the trace layer should be in the trace file
     // header.
     return (call_id == format::ApiCallId::ApiCall_vkQueuePresentKHR) ? true : false;
+}
+
+void FileProcessor::ProcessPendingCalls()
+{
+    while (!active_calls_.empty())
+    {
+        auto value = active_calls_.front();
+        assert(value != nullptr);
+
+        if (value->complete)
+        {
+            for (auto decoder : decoders_)
+            {
+                decoder->DecodeFunctionCall(value->call_id,
+                                            value->pre_options,
+                                            value->pre_buffer.data(),
+                                            value->pre_buffer_size,
+                                            value->post_options,
+                                            value->post_buffer.data(),
+                                            value->post_buffer_size);
+            }
+
+            active_calls_.pop_front();
+            delete value;
+        }
+        else
+        {
+            break;
+        }
+    }
 }
 
 BRIMSTONE_END_NAMESPACE(decode)

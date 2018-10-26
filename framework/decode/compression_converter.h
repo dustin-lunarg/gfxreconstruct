@@ -50,8 +50,16 @@ class CompressionConverter : public ApiDecoder
 
     virtual void DecodeFunctionCall(format::ApiCallId             call_id,
                                     const format::ApiCallOptions& call_options,
-                                    const uint8_t*                buffer,
-                                    size_t                        buffer_size) override;
+                                    const uint8_t*                param_buffer,
+                                    size_t                        param_buffer_size) override;
+
+    virtual void DecodeFunctionCall(format::ApiCallId             call_id,
+                                    const format::ApiCallOptions& pre_call_options,
+                                    const uint8_t*                pre_buffer,
+                                    size_t                        pre_buffer_size,
+                                    const format::ApiCallOptions& post_call_options,
+                                    const uint8_t*                post_buffer,
+                                    size_t                        post_buffer_size) override;
 
     virtual void DispatchDisplayMessageCommand(const std::string& message) override;
 
@@ -61,6 +69,21 @@ class CompressionConverter : public ApiDecoder
     virtual void DispatchResizeWindowCommand(format::HandleId surface_id, uint32_t width, uint32_t height) override;
 
     uint64_t NumBytesWritten() { return bytes_written_; }
+
+  private:
+    enum ApiCallBlockType
+    {
+        Unified  = 0,
+        PreCall  = 1,
+        PostCall = 2
+    };
+
+  private:
+    void ProcessFunctionCallBlock(ApiCallBlockType              block_type,
+                                  format::ApiCallId             call_id,
+                                  const format::ApiCallOptions& call_options,
+                                  const uint8_t*                param_buffer,
+                                  size_t                        param_buffer_size);
 
   private:
     std::unique_ptr<util::FileOutputStream> file_stream_;

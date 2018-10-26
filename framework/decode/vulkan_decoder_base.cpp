@@ -49,7 +49,8 @@ void VulkanDecoderBase::DispatchResizeWindowCommand(format::HandleId surface_id,
     }
 }
 
-size_t VulkanDecoderBase::Decode_vkUpdateDescriptorSetWithTemplate(const uint8_t* parameter_buffer, size_t buffer_size)
+size_t VulkanDecoderBase::Decode_vkUpdateDescriptorSetWithTemplate(const uint8_t* param_buffer,
+                                                                   size_t         param_buffer_size)
 {
     size_t bytes_read = 0;
 
@@ -59,12 +60,12 @@ size_t VulkanDecoderBase::Decode_vkUpdateDescriptorSetWithTemplate(const uint8_t
     DescriptorUpdateTemplateDecoder pData;
 
     bytes_read +=
-        ValueDecoder::DecodeHandleIdValue((parameter_buffer + bytes_read), (buffer_size - bytes_read), &device);
-    bytes_read +=
-        ValueDecoder::DecodeHandleIdValue((parameter_buffer + bytes_read), (buffer_size - bytes_read), &descriptorSet);
+        ValueDecoder::DecodeHandleIdValue((param_buffer + bytes_read), (param_buffer_size - bytes_read), &device);
     bytes_read += ValueDecoder::DecodeHandleIdValue(
-        (parameter_buffer + bytes_read), (buffer_size - bytes_read), &descriptorUpdateTemplate);
-    bytes_read += pData.Decode((parameter_buffer + bytes_read), (buffer_size - bytes_read));
+        (param_buffer + bytes_read), (param_buffer_size - bytes_read), &descriptorSet);
+    bytes_read += ValueDecoder::DecodeHandleIdValue(
+        (param_buffer + bytes_read), (param_buffer_size - bytes_read), &descriptorUpdateTemplate);
+    bytes_read += pData.Decode((param_buffer + bytes_read), (param_buffer_size - bytes_read));
 
     for (auto consumer : consumers_)
     {
@@ -74,8 +75,38 @@ size_t VulkanDecoderBase::Decode_vkUpdateDescriptorSetWithTemplate(const uint8_t
     return bytes_read;
 }
 
-size_t VulkanDecoderBase::Decode_vkCmdPushDescriptorSetWithTemplateKHR(const uint8_t* parameter_buffer,
-                                                                       size_t         buffer_size)
+size_t VulkanDecoderBase::Decode_vkUpdateDescriptorSetWithTemplate(const uint8_t* pre_buffer,
+                                                                   size_t         pre_buffer_size,
+                                                                   const uint8_t* post_buffer,
+                                                                   size_t         post_buffer_size)
+{
+    BRIMSTONE_UNREFERENCED_PARAMETER(post_buffer);
+    BRIMSTONE_UNREFERENCED_PARAMETER(post_buffer_size);
+
+    size_t bytes_read = 0;
+
+    format::HandleId                device;
+    format::HandleId                descriptorSet;
+    format::HandleId                descriptorUpdateTemplate;
+    DescriptorUpdateTemplateDecoder pData;
+
+    bytes_read += ValueDecoder::DecodeHandleIdValue((pre_buffer + bytes_read), (pre_buffer_size - bytes_read), &device);
+    bytes_read +=
+        ValueDecoder::DecodeHandleIdValue((pre_buffer + bytes_read), (pre_buffer_size - bytes_read), &descriptorSet);
+    bytes_read += ValueDecoder::DecodeHandleIdValue(
+        (pre_buffer + bytes_read), (pre_buffer_size - bytes_read), &descriptorUpdateTemplate);
+    bytes_read += pData.Decode((pre_buffer + bytes_read), (pre_buffer_size - bytes_read));
+
+    for (auto consumer : consumers_)
+    {
+        consumer->Process_vkUpdateDescriptorSetWithTemplate(device, descriptorSet, descriptorUpdateTemplate, pData);
+    }
+
+    return bytes_read;
+}
+
+size_t VulkanDecoderBase::Decode_vkCmdPushDescriptorSetWithTemplateKHR(const uint8_t* param_buffer,
+                                                                       size_t         param_buffer_size)
 {
     size_t bytes_read = 0;
 
@@ -85,14 +116,14 @@ size_t VulkanDecoderBase::Decode_vkCmdPushDescriptorSetWithTemplateKHR(const uin
     uint32_t                        set;
     DescriptorUpdateTemplateDecoder pData;
 
-    bytes_read +=
-        ValueDecoder::DecodeHandleIdValue((parameter_buffer + bytes_read), (buffer_size - bytes_read), &commandBuffer);
     bytes_read += ValueDecoder::DecodeHandleIdValue(
-        (parameter_buffer + bytes_read), (buffer_size - bytes_read), &descriptorUpdateTemplate);
+        (param_buffer + bytes_read), (param_buffer_size - bytes_read), &commandBuffer);
+    bytes_read += ValueDecoder::DecodeHandleIdValue(
+        (param_buffer + bytes_read), (param_buffer_size - bytes_read), &descriptorUpdateTemplate);
     bytes_read +=
-        ValueDecoder::DecodeHandleIdValue((parameter_buffer + bytes_read), (buffer_size - bytes_read), &layout);
-    bytes_read += ValueDecoder::DecodeUInt32Value((parameter_buffer + bytes_read), (buffer_size - bytes_read), &set);
-    bytes_read += pData.Decode((parameter_buffer + bytes_read), (buffer_size - bytes_read));
+        ValueDecoder::DecodeHandleIdValue((param_buffer + bytes_read), (param_buffer_size - bytes_read), &layout);
+    bytes_read += ValueDecoder::DecodeUInt32Value((param_buffer + bytes_read), (param_buffer_size - bytes_read), &set);
+    bytes_read += pData.Decode((param_buffer + bytes_read), (param_buffer_size - bytes_read));
 
     for (auto consumer : consumers_)
     {
@@ -103,8 +134,41 @@ size_t VulkanDecoderBase::Decode_vkCmdPushDescriptorSetWithTemplateKHR(const uin
     return bytes_read;
 }
 
-size_t VulkanDecoderBase::Decode_vkUpdateDescriptorSetWithTemplateKHR(const uint8_t* parameter_buffer,
-                                                                      size_t         buffer_size)
+size_t VulkanDecoderBase::Decode_vkCmdPushDescriptorSetWithTemplateKHR(const uint8_t* pre_buffer,
+                                                                       size_t         pre_buffer_size,
+                                                                       const uint8_t* post_buffer,
+                                                                       size_t         post_buffer_size)
+{
+    BRIMSTONE_UNREFERENCED_PARAMETER(post_buffer);
+    BRIMSTONE_UNREFERENCED_PARAMETER(post_buffer_size);
+
+    size_t bytes_read = 0;
+
+    format::HandleId                commandBuffer;
+    format::HandleId                descriptorUpdateTemplate;
+    format::HandleId                layout;
+    uint32_t                        set;
+    DescriptorUpdateTemplateDecoder pData;
+
+    bytes_read +=
+        ValueDecoder::DecodeHandleIdValue((pre_buffer + bytes_read), (pre_buffer_size - bytes_read), &commandBuffer);
+    bytes_read += ValueDecoder::DecodeHandleIdValue(
+        (pre_buffer + bytes_read), (pre_buffer_size - bytes_read), &descriptorUpdateTemplate);
+    bytes_read += ValueDecoder::DecodeHandleIdValue((pre_buffer + bytes_read), (pre_buffer_size - bytes_read), &layout);
+    bytes_read += ValueDecoder::DecodeUInt32Value((pre_buffer + bytes_read), (pre_buffer_size - bytes_read), &set);
+    bytes_read += pData.Decode((pre_buffer + bytes_read), (pre_buffer_size - bytes_read));
+
+    for (auto consumer : consumers_)
+    {
+        consumer->Process_vkCmdPushDescriptorSetWithTemplateKHR(
+            commandBuffer, descriptorUpdateTemplate, layout, set, pData);
+    }
+
+    return bytes_read;
+}
+
+size_t VulkanDecoderBase::Decode_vkUpdateDescriptorSetWithTemplateKHR(const uint8_t* param_buffer,
+                                                                      size_t         param_buffer_size)
 {
     size_t bytes_read = 0;
 
@@ -114,12 +178,12 @@ size_t VulkanDecoderBase::Decode_vkUpdateDescriptorSetWithTemplateKHR(const uint
     DescriptorUpdateTemplateDecoder pData;
 
     bytes_read +=
-        ValueDecoder::DecodeHandleIdValue((parameter_buffer + bytes_read), (buffer_size - bytes_read), &device);
-    bytes_read +=
-        ValueDecoder::DecodeHandleIdValue((parameter_buffer + bytes_read), (buffer_size - bytes_read), &descriptorSet);
+        ValueDecoder::DecodeHandleIdValue((param_buffer + bytes_read), (param_buffer_size - bytes_read), &device);
     bytes_read += ValueDecoder::DecodeHandleIdValue(
-        (parameter_buffer + bytes_read), (buffer_size - bytes_read), &descriptorUpdateTemplate);
-    bytes_read += pData.Decode((parameter_buffer + bytes_read), (buffer_size - bytes_read));
+        (param_buffer + bytes_read), (param_buffer_size - bytes_read), &descriptorSet);
+    bytes_read += ValueDecoder::DecodeHandleIdValue(
+        (param_buffer + bytes_read), (param_buffer_size - bytes_read), &descriptorUpdateTemplate);
+    bytes_read += pData.Decode((param_buffer + bytes_read), (param_buffer_size - bytes_read));
 
     for (auto consumer : consumers_)
     {
@@ -129,7 +193,37 @@ size_t VulkanDecoderBase::Decode_vkUpdateDescriptorSetWithTemplateKHR(const uint
     return bytes_read;
 }
 
-size_t VulkanDecoderBase::Decode_vkRegisterObjectsNVX(const uint8_t* parameter_buffer, size_t buffer_size)
+size_t VulkanDecoderBase::Decode_vkUpdateDescriptorSetWithTemplateKHR(const uint8_t* pre_buffer,
+                                                                      size_t         pre_buffer_size,
+                                                                      const uint8_t* post_buffer,
+                                                                      size_t         post_buffer_size)
+{
+    BRIMSTONE_UNREFERENCED_PARAMETER(post_buffer);
+    BRIMSTONE_UNREFERENCED_PARAMETER(post_buffer_size);
+
+    size_t bytes_read = 0;
+
+    format::HandleId                device;
+    format::HandleId                descriptorSet;
+    format::HandleId                descriptorUpdateTemplate;
+    DescriptorUpdateTemplateDecoder pData;
+
+    bytes_read += ValueDecoder::DecodeHandleIdValue((pre_buffer + bytes_read), (pre_buffer_size - bytes_read), &device);
+    bytes_read +=
+        ValueDecoder::DecodeHandleIdValue((pre_buffer + bytes_read), (pre_buffer_size - bytes_read), &descriptorSet);
+    bytes_read += ValueDecoder::DecodeHandleIdValue(
+        (pre_buffer + bytes_read), (pre_buffer_size - bytes_read), &descriptorUpdateTemplate);
+    bytes_read += pData.Decode((pre_buffer + bytes_read), (pre_buffer_size - bytes_read));
+
+    for (auto consumer : consumers_)
+    {
+        consumer->Process_vkUpdateDescriptorSetWithTemplateKHR(device, descriptorSet, descriptorUpdateTemplate, pData);
+    }
+
+    return bytes_read;
+}
+
+size_t VulkanDecoderBase::Decode_vkRegisterObjectsNVX(const uint8_t* param_buffer, size_t param_buffer_size)
 {
     size_t bytes_read = 0;
 
@@ -141,15 +235,49 @@ size_t VulkanDecoderBase::Decode_vkRegisterObjectsNVX(const uint8_t* parameter_b
     VkResult                                            return_value;
 
     bytes_read +=
-        ValueDecoder::DecodeHandleIdValue((parameter_buffer + bytes_read), (buffer_size - bytes_read), &device);
+        ValueDecoder::DecodeHandleIdValue((param_buffer + bytes_read), (param_buffer_size - bytes_read), &device);
     bytes_read +=
-        ValueDecoder::DecodeHandleIdValue((parameter_buffer + bytes_read), (buffer_size - bytes_read), &objectTable);
+        ValueDecoder::DecodeHandleIdValue((param_buffer + bytes_read), (param_buffer_size - bytes_read), &objectTable);
     bytes_read +=
-        ValueDecoder::DecodeUInt32Value((parameter_buffer + bytes_read), (buffer_size - bytes_read), &objectCount);
-    bytes_read += ppObjectTableEntries.Decode((parameter_buffer + bytes_read), (buffer_size - bytes_read));
-    bytes_read += pObjectIndices.DecodeUInt32((parameter_buffer + bytes_read), (buffer_size - bytes_read));
+        ValueDecoder::DecodeUInt32Value((param_buffer + bytes_read), (param_buffer_size - bytes_read), &objectCount);
+    bytes_read += ppObjectTableEntries.Decode((param_buffer + bytes_read), (param_buffer_size - bytes_read));
+    bytes_read += pObjectIndices.DecodeUInt32((param_buffer + bytes_read), (param_buffer_size - bytes_read));
     bytes_read +=
-        ValueDecoder::DecodeEnumValue((parameter_buffer + bytes_read), (buffer_size - bytes_read), &return_value);
+        ValueDecoder::DecodeEnumValue((param_buffer + bytes_read), (param_buffer_size - bytes_read), &return_value);
+
+    for (auto consumer : consumers_)
+    {
+        consumer->Process_vkRegisterObjectsNVX(
+            return_value, device, objectTable, objectCount, ppObjectTableEntries, pObjectIndices);
+    }
+
+    return bytes_read;
+}
+
+size_t VulkanDecoderBase::Decode_vkRegisterObjectsNVX(const uint8_t* pre_buffer,
+                                                      size_t         pre_buffer_size,
+                                                      const uint8_t* post_buffer,
+                                                      size_t         post_buffer_size)
+{
+    size_t bytes_read = 0;
+
+    format::HandleId                                    device;
+    format::HandleId                                    objectTable;
+    uint32_t                                            objectCount;
+    StructPointerDecoder<Decoded_VkObjectTableEntryNVX> ppObjectTableEntries;
+    PointerDecoder<uint32_t>                            pObjectIndices;
+    VkResult                                            return_value;
+
+    bytes_read += ValueDecoder::DecodeHandleIdValue((pre_buffer + bytes_read), (pre_buffer_size - bytes_read), &device);
+    bytes_read +=
+        ValueDecoder::DecodeHandleIdValue((pre_buffer + bytes_read), (pre_buffer_size - bytes_read), &objectTable);
+    bytes_read +=
+        ValueDecoder::DecodeUInt32Value((pre_buffer + bytes_read), (pre_buffer_size - bytes_read), &objectCount);
+    bytes_read += ppObjectTableEntries.Decode((pre_buffer + bytes_read), (pre_buffer_size - bytes_read));
+    bytes_read += pObjectIndices.DecodeUInt32((pre_buffer + bytes_read), (pre_buffer_size - bytes_read));
+
+    bytes_read +=
+        ValueDecoder::DecodeEnumValue((post_buffer + bytes_read), (post_buffer_size - bytes_read), &return_value);
 
     for (auto consumer : consumers_)
     {
@@ -162,24 +290,56 @@ size_t VulkanDecoderBase::Decode_vkRegisterObjectsNVX(const uint8_t* parameter_b
 
 void VulkanDecoderBase::DecodeFunctionCall(format::ApiCallId             call_id,
                                            const format::ApiCallOptions& call_options,
-                                           const uint8_t*                parameter_buffer,
-                                           size_t                        buffer_size)
+                                           const uint8_t*                param_buffer,
+                                           size_t                        param_buffer_size)
 {
     BRIMSTONE_UNREFERENCED_PARAMETER(call_options);
 
     switch (call_id)
     {
         case format::ApiCallId::ApiCall_vkUpdateDescriptorSetWithTemplate:
-            Decode_vkUpdateDescriptorSetWithTemplate(parameter_buffer, buffer_size);
+            Decode_vkUpdateDescriptorSetWithTemplate(param_buffer, param_buffer_size);
             break;
         case format::ApiCallId::ApiCall_vkCmdPushDescriptorSetWithTemplateKHR:
-            Decode_vkCmdPushDescriptorSetWithTemplateKHR(parameter_buffer, buffer_size);
+            Decode_vkCmdPushDescriptorSetWithTemplateKHR(param_buffer, param_buffer_size);
             break;
         case format::ApiCallId::ApiCall_vkUpdateDescriptorSetWithTemplateKHR:
-            Decode_vkUpdateDescriptorSetWithTemplateKHR(parameter_buffer, buffer_size);
+            Decode_vkUpdateDescriptorSetWithTemplateKHR(param_buffer, param_buffer_size);
             break;
         case format::ApiCallId::ApiCall_vkRegisterObjectsNVX:
-            Decode_vkRegisterObjectsNVX(parameter_buffer, buffer_size);
+            Decode_vkRegisterObjectsNVX(param_buffer, param_buffer_size);
+            break;
+        default:
+            break;
+    }
+}
+
+void VulkanDecoderBase::DecodeFunctionCall(format::ApiCallId             call_id,
+                                           const format::ApiCallOptions& pre_call_options,
+                                           const uint8_t*                pre_call_buffer,
+                                           size_t                        pre_call_size,
+                                           const format::ApiCallOptions& post_call_options,
+                                           const uint8_t*                post_call_buffer,
+                                           size_t                        post_call_size)
+{
+    BRIMSTONE_UNREFERENCED_PARAMETER(pre_call_options);
+    BRIMSTONE_UNREFERENCED_PARAMETER(post_call_options);
+
+    switch (call_id)
+    {
+        case format::ApiCallId::ApiCall_vkUpdateDescriptorSetWithTemplate:
+            Decode_vkUpdateDescriptorSetWithTemplate(pre_call_buffer, pre_call_size, post_call_buffer, post_call_size);
+            break;
+        case format::ApiCallId::ApiCall_vkCmdPushDescriptorSetWithTemplateKHR:
+            Decode_vkCmdPushDescriptorSetWithTemplateKHR(
+                pre_call_buffer, pre_call_size, post_call_buffer, post_call_size);
+            break;
+        case format::ApiCallId::ApiCall_vkUpdateDescriptorSetWithTemplateKHR:
+            Decode_vkUpdateDescriptorSetWithTemplateKHR(
+                pre_call_buffer, pre_call_size, post_call_buffer, post_call_size);
+            break;
+        case format::ApiCallId::ApiCall_vkRegisterObjectsNVX:
+            Decode_vkRegisterObjectsNVX(pre_call_buffer, pre_call_size, post_call_buffer, post_call_size);
             break;
         default:
             break;

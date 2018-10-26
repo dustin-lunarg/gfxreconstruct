@@ -53,8 +53,16 @@ class VulkanDecoderBase : public ApiDecoder
 
     virtual void DecodeFunctionCall(format::ApiCallId             call_id,
                                     const format::ApiCallOptions& call_options,
-                                    const uint8_t*                parameter_buffer,
-                                    size_t                        buffer_size) override;
+                                    const uint8_t*                param_buffer,
+                                    size_t                        param_buffer_size) override;
+
+    virtual void DecodeFunctionCall(format::ApiCallId             id,
+                                    const format::ApiCallOptions& pre_call_options,
+                                    const uint8_t*                pre_buffer,
+                                    size_t                        pre_buffer_size,
+                                    const format::ApiCallOptions& post_call_options,
+                                    const uint8_t*                post_buffer,
+                                    size_t                        post_buffer_size) override;
 
     virtual void DispatchDisplayMessageCommand(const std::string& message) override;
 
@@ -67,13 +75,33 @@ class VulkanDecoderBase : public ApiDecoder
     const std::vector<VulkanConsumer*>& GetConsumers() const { return consumers_; }
 
   private:
-    size_t Decode_vkUpdateDescriptorSetWithTemplate(const uint8_t* parameter_buffer, size_t buffer_size);
+    size_t Decode_vkUpdateDescriptorSetWithTemplate(const uint8_t* param_buffer, size_t param_buffer_size);
 
-    size_t Decode_vkCmdPushDescriptorSetWithTemplateKHR(const uint8_t* parameter_buffer, size_t buffer_size);
+    size_t Decode_vkUpdateDescriptorSetWithTemplate(const uint8_t* pre_buffer,
+                                                    size_t         pre_buffer_size,
+                                                    const uint8_t* post_buffer,
+                                                    size_t         post_buffer_size);
 
-    size_t Decode_vkUpdateDescriptorSetWithTemplateKHR(const uint8_t* parameter_buffer, size_t buffer_size);
+    size_t Decode_vkCmdPushDescriptorSetWithTemplateKHR(const uint8_t* param_buffer, size_t param_buffer_size);
 
-    size_t Decode_vkRegisterObjectsNVX(const uint8_t* parameter_buffer, size_t buffer_size);
+    size_t Decode_vkCmdPushDescriptorSetWithTemplateKHR(const uint8_t* pre_buffer,
+                                                        size_t         pre_buffer_size,
+                                                        const uint8_t* post_buffer,
+                                                        size_t         post_buffer_size);
+
+    size_t Decode_vkUpdateDescriptorSetWithTemplateKHR(const uint8_t* param_buffer, size_t param_buffer_size);
+
+    size_t Decode_vkUpdateDescriptorSetWithTemplateKHR(const uint8_t* pre_buffer,
+                                                       size_t         pre_buffer_size,
+                                                       const uint8_t* post_buffer,
+                                                       size_t         post_buffer_size);
+
+    size_t Decode_vkRegisterObjectsNVX(const uint8_t* param_buffer, size_t param_buffer_size);
+
+    size_t Decode_vkRegisterObjectsNVX(const uint8_t* pre_buffer,
+                                       size_t         pre_buffer_size,
+                                       const uint8_t* post_buffer,
+                                       size_t         post_buffer_size);
 
   private:
     std::vector<VulkanConsumer*> consumers_;

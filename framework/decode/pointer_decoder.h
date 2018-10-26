@@ -97,9 +97,14 @@ class PointerDecoder : public PointerDecoderBase
 
             if (!is_memory_external_)
             {
-                assert(data_ == nullptr);
+                // TODO: Temporary change for intermediate split parameter block implementation.
+                // assert(data_ == nullptr);
+                if (data_ != nullptr)
+                {
+                    delete[] data_;
+                }
 
-                data_     = new T[len];
+                data_ = new T[len];
                 capacity_ = len;
                 bytes_read +=
                     ValueDecoder::DecodeArrayFrom<SrcT>((buffer + bytes_read), (buffer_size - bytes_read), data_, len);

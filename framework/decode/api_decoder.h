@@ -37,8 +37,16 @@ class ApiDecoder
 
     virtual void DecodeFunctionCall(format::ApiCallId             id,
                                     const format::ApiCallOptions& call_options,
-                                    const uint8_t*                buffer,
-                                    size_t                        buffer_size) = 0;
+                                    const uint8_t*                param_buffer,
+                                    size_t                        param_buffer_size) = 0;
+
+    virtual void DecodeFunctionCall(format::ApiCallId             id,
+                                    const format::ApiCallOptions& pre_call_options,
+                                    const uint8_t*                pre_buffer,
+                                    size_t                        pre_buffer_size,
+                                    const format::ApiCallOptions& post_call_options,
+                                    const uint8_t*                post_buffer,
+                                    size_t                        post_buffer_size) = 0;
 
     virtual void DispatchDisplayMessageCommand(const std::string& message) {}
 
