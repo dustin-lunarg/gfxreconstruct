@@ -9,6 +9,8 @@ target_sources(VkLayer_gfxreconstruct
                    $<$<BOOL:WIN32>:trace_layer.def>
               )
 
+set_target_properties(VkLayer_gfxreconstruct PROPERTIES CXX_VISIBILITY_PRESET hidden)
+
 target_include_directories(VkLayer_gfxreconstruct
                            PUBLIC
                                ${CMAKE_SOURCE_DIR})
