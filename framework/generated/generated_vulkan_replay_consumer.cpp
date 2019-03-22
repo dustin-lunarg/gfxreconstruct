@@ -2001,6 +2001,10 @@ void VulkanReplayConsumer::Process_vkEnumeratePhysicalDeviceGroups(
     VkResult replay_result = Dispatcher<format::ApiCallId::ApiCall_vkEnumeratePhysicalDeviceGroups, VkResult, PFN_vkEnumeratePhysicalDeviceGroups>::Dispatch(this, returnValue, vkEnumeratePhysicalDeviceGroups, in_instance, out_pPhysicalDeviceGroupCount, out_pPhysicalDeviceGroupProperties);
     CheckResult("vkEnumeratePhysicalDeviceGroups", returnValue, replay_result);
 
+    for (uint32_t i = 0; i < {}; ++i)
+    {
+        
+    }
     FreeArray<VkPhysicalDeviceGroupProperties>(&out_pPhysicalDeviceGroupProperties);
 }
 
@@ -2957,6 +2961,10 @@ void VulkanReplayConsumer::Process_vkEnumeratePhysicalDeviceGroupsKHR(
     VkResult replay_result = Dispatcher<format::ApiCallId::ApiCall_vkEnumeratePhysicalDeviceGroupsKHR, VkResult, PFN_vkEnumeratePhysicalDeviceGroupsKHR>::Dispatch(this, returnValue, vkEnumeratePhysicalDeviceGroupsKHR, in_instance, out_pPhysicalDeviceGroupCount, out_pPhysicalDeviceGroupProperties);
     CheckResult("vkEnumeratePhysicalDeviceGroupsKHR", returnValue, replay_result);
 
+    for (uint32_t i = 0; i < {}; ++i)
+    {
+        
+    }
     FreeArray<VkPhysicalDeviceGroupProperties>(&out_pPhysicalDeviceGroupProperties);
 }
 
@@ -3348,6 +3356,10 @@ void VulkanReplayConsumer::Process_vkGetPhysicalDeviceDisplayProperties2KHR(
     VkResult replay_result = Dispatcher<format::ApiCallId::ApiCall_vkGetPhysicalDeviceDisplayProperties2KHR, VkResult, PFN_vkGetPhysicalDeviceDisplayProperties2KHR>::Dispatch(this, returnValue, vkGetPhysicalDeviceDisplayProperties2KHR, in_physicalDevice, out_pPropertyCount, out_pProperties);
     CheckResult("vkGetPhysicalDeviceDisplayProperties2KHR", returnValue, replay_result);
 
+    for (uint32_t i = 0; i < {}; ++i)
+    {
+        
+    }
     FreeArray<VkDisplayProperties2KHR>(&out_pProperties);
 }
 
@@ -3365,6 +3377,10 @@ void VulkanReplayConsumer::Process_vkGetPhysicalDeviceDisplayPlaneProperties2KHR
     VkResult replay_result = Dispatcher<format::ApiCallId::ApiCall_vkGetPhysicalDeviceDisplayPlaneProperties2KHR, VkResult, PFN_vkGetPhysicalDeviceDisplayPlaneProperties2KHR>::Dispatch(this, returnValue, vkGetPhysicalDeviceDisplayPlaneProperties2KHR, in_physicalDevice, out_pPropertyCount, out_pProperties);
     CheckResult("vkGetPhysicalDeviceDisplayPlaneProperties2KHR", returnValue, replay_result);
 
+    for (uint32_t i = 0; i < {}; ++i)
+    {
+        
+    }
     FreeArray<VkDisplayPlaneProperties2KHR>(&out_pProperties);
 }
 
@@ -3384,6 +3400,10 @@ void VulkanReplayConsumer::Process_vkGetDisplayModeProperties2KHR(
     VkResult replay_result = Dispatcher<format::ApiCallId::ApiCall_vkGetDisplayModeProperties2KHR, VkResult, PFN_vkGetDisplayModeProperties2KHR>::Dispatch(this, returnValue, vkGetDisplayModeProperties2KHR, in_physicalDevice, in_display, out_pPropertyCount, out_pProperties);
     CheckResult("vkGetDisplayModeProperties2KHR", returnValue, replay_result);
 
+    for (uint32_t i = 0; i < {}; ++i)
+    {
+        
+    }
     FreeArray<VkDisplayModeProperties2KHR>(&out_pProperties);
 }
 

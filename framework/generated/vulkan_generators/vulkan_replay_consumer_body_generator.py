@@ -223,8 +223,17 @@ class VulkanReplayConsumerBodyGenerator(BaseGenerator):
                             expr += '{}.GetHandlePointer();'.format(value.name)
                             postexpr.append('AddHandles<{basetype}>({paramname}.GetPointer(), {paramname}.GetLength(), {}, {}, &VulkanObjectMapper::Add{basetype});'.format(argName, lengthName, paramname=value.name, basetype=value.baseType))
                         elif self.isStruct(value.baseType) and (value.baseType in self.sTypeValues):
-                            # TODO: recreate pNext value read from the capture file.
                             expr += '{}.IsNull() ? nullptr : AllocateArray<{basetype}>({}, {basetype}{{ {}, nullptr }});'.format(value.name, lengthName, self.sTypeValues[value.baseType], basetype=value.baseType)
+
+                            if value.baseType in self.structsWithHandles:
+                                print(value.baseType, 'returns handles')
+                                # Add the retrieved handles to the handle map.
+                                postexpr.append('for (uint32_t i = 0; i < {}; ++i)')
+                                postexpr.append('{')
+                                postexpr.append('    ')
+                                postexpr.append('}')
+
+
                             postexpr.append('FreeArray<{}>(&{});'.format(value.baseType, argName))
                         else:
                             expr += '{}.IsNull() ? nullptr : AllocateArray<{}>({});'.format(value.name, value.baseType, lengthName)
@@ -264,6 +273,10 @@ class VulkanReplayConsumerBodyGenerator(BaseGenerator):
                             if self.isHandle(value.baseType):
                                 # Add mapping for the newly created handle
                                 postexpr.append('AddHandles<{basetype}>({}.GetPointer(), 1, {}, 1, &VulkanObjectMapper::Add{basetype});'.format(value.name, argName, basetype=value.baseType))
+                            elif self.isStruct(value.baseType) and (value.baseType in self.structsWithHandles):
+                                # Add mapping for a handle(s) that was retrieved as a member of a struct
+                                # There are currently no cases of this type to test
+                                print('WARNING: An output struct containing handles was encountered, but was not processed for handle mapping')
                 if expr:
                     preexpr.append(expr)
             elif self.isHandle(value.baseType):
