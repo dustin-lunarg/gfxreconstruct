@@ -95,7 +95,6 @@ class PageGuardManager
 
     size_t GetAlignedSize(size_t size) const;
 
-    // The use_write_watch parameter is ignored on all platforms except Windows.
     void* AllocateMemory(size_t aligned_size, bool use_write_watch);
 
     void FreeMemory(void* pMemory, size_t aligned_size);
@@ -131,12 +130,14 @@ class PageGuardManager
             aligned_offset(ao), total_pages(tp), last_segment_size(lss), start_address(sa), end_address(ea),
             use_write_watch(ww), is_modified(false), own_shadow_memory(os)
         {
-#if defined(WIN32)
             if (shadow_memory == nullptr)
             {
+#if defined(WIN32)
                 modified_addresses = std::make_unique<void*[]>(total_pages);
-            }
+#else
+                pagemap_entries = std::make_unique<uint64_t[]>(total_pages);
 #endif
+            }
         }
 
         PageStatusTracker status_tracker;
@@ -160,6 +161,9 @@ class PageGuardManager
 #if defined(WIN32)
         // Memory for retrieving modified pages with GetWriteWatch.
         std::unique_ptr<void*[]> modified_addresses;
+#else
+        // Memory for retrieveing /proc/self/pagemap_reset entries.
+        std::unique_ptr<uint64_t[]> pagemap_entries;
 #endif
     };
 

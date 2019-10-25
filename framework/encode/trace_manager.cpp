@@ -237,7 +237,7 @@ bool TraceManager::Initialize(std::string base_filename, const CaptureSettings::
 
         bool use_external_memory = trace_settings.page_guard_external_memory;
 
-#if !defined(WIN32)
+#if defined(_ANDROID_)
         if (use_external_memory)
         {
             use_external_memory = false;
@@ -2087,6 +2087,8 @@ void TraceManager::PreProcess_vkFlushMappedMemoryRanges(VkDevice                
     {
         if (memory_tracking_mode_ == CaptureSettings::MemoryTrackingMode::kPageGuard)
         {
+            // When using shadow memory (not using external memory), make sure we copy the dirty pages from the shadow
+            // memory to the driver's memory before the flush.
             const DeviceMemoryWrapper* current_memory_wrapper = nullptr;
             util::PageGuardManager*    manager                = util::PageGuardManager::Get();
             assert(manager != nullptr);

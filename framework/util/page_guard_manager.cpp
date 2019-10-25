@@ -97,10 +97,20 @@ static LONG WINAPI PageGuardExceptionHandler(PEXCEPTION_POINTERS exception_point
 
     return result_code;
 }
+
+static bool InitWriteWatch()
+{
+    return true;
+}
+
+static void ReleaseWriteWatch() {}
 #else
 #include <errno.h>
+#include <fcntl.h>
 #include <signal.h>
 #include <sys/mman.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 #include <unistd.h>
 
 const uint32_t kGuardReadWriteProtect = PROT_NONE;
@@ -184,6 +194,55 @@ static void PageGuardExceptionHandler(int id, siginfo_t* info, void* data)
         }
     }
 }
+
+const char   kClearDirtyPteValue = '4';
+const size_t kPageMapEntrySize   = 8;
+static int   s_pagemap_file      = -1;
+static int   s_clear_file        = -1;
+
+static bool InitWriteWatch()
+{
+    if (s_pagemap_file == -1)
+    {
+        s_pagemap_file = open("/proc/self/pagemap_reset", O_RDONLY);
+        if (s_pagemap_file != -1)
+        {
+            assert(s_clear_file == -1);
+            s_clear_file = open("/proc/self/clear_refs", O_WRONLY);
+            if (s_clear_file == -1)
+            {
+                GFXRECON_LOG_ERROR("Failed to open /proc/self/clear_refs file for clearing page table entry soft-dirty "
+                                   "bits (errno = %d)",
+                                   errno);
+
+                close(s_pagemap_file);
+                s_pagemap_file = -1;
+                return false;
+            }
+        }
+        else
+        {
+            GFXRECON_LOG_ERROR("Failed to open /proc/self/pagemap_reset file for detecting modified pages (errno = %d)",
+                               errno);
+            return false;
+        }
+    }
+
+    return true;
+}
+
+static void ReleaseWriteWatch()
+{
+    if (s_pagemap_file != -1)
+    {
+        close(s_pagemap_file);
+    }
+
+    if (s_clear_file != -1)
+    {
+        close(s_clear_file);
+    }
+}
 #endif
 
 PageGuardManager* PageGuardManager::instance_ = nullptr;
@@ -209,6 +268,8 @@ PageGuardManager::~PageGuardManager()
     {
         ClearExceptionHandler(exception_handler_);
     }
+
+    ReleaseWriteWatch();
 }
 
 void PageGuardManager::Create(bool enable_copy_on_map, bool enable_separate_read, bool expect_read_write_same_page)
@@ -291,13 +352,33 @@ void* PageGuardManager::AllocateMemory(size_t aligned_size, bool use_write_watch
 
         memory = VirtualAlloc(nullptr, aligned_size, flags, PAGE_READWRITE);
 #else
-        if (use_write_watch)
-        {
-            GFXRECON_LOG_ERROR("PageGuardManager::AllocateMemory() ignored use_write_watch=true due to lack of support "
-                               "from the current platform.");
-        }
-
         memory = mmap(nullptr, aligned_size, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+
+        if (memory && use_write_watch && InitWriteWatch())
+        {
+            assert(s_clear_file != -1);
+
+            char     buffer[17];
+            auto     addr       = reinterpret_cast<uintptr_t>(memory);
+            auto     start_addr = static_cast<uint64_t>(addr);
+            uint64_t end_addr   = start_addr + aligned_size;
+
+            buffer[0] = '6';
+            memcpy(&buffer[1], &start_addr, sizeof(start_addr));
+            memcpy(&buffer[9], &end_addr, sizeof(end_addr));
+
+            if (lseek(s_clear_file, 0, SEEK_SET) != -1)
+            {
+                if (write(s_clear_file, buffer, 17) != 17)
+                {
+                    GFXRECON_LOG_ERROR("Write failed when setting soft-dirty page range (errno = %d)", errno);
+                }
+            }
+            else
+            {
+                GFXRECON_LOG_ERROR("Seek failed when setting soft-dirty page range (errno = %d)", errno);
+            }
+        }
 #endif
     }
 
@@ -532,6 +613,48 @@ void PageGuardManager::LoadActiveWriteStates(MemoryInfo* memory_info)
                            memory_info->mapped_range,
                            GetLastError());
     }
+#else
+    assert(s_pagemap_file != -1);
+
+    // TODO: Some of these calculations can be done once at map time.
+    size_t start_location =
+        (reinterpret_cast<uintptr_t>(memory_info->aligned_address) >> system_page_pot_shift_) * kPageMapEntrySize;
+
+    if (lseek(s_pagemap_file, static_cast<off_t>(start_location), SEEK_SET) != -1)
+    {
+        auto   modified_addresses = memory_info->pagemap_entries.get();
+        size_t entries_size       = memory_info->total_pages * kPageMapEntrySize;
+
+        modified_addresses[0] = reinterpret_cast<uintptr_t>(memory_info->aligned_address) +
+                                GetAlignedSize(memory_info->mapped_range + memory_info->aligned_offset);
+
+        auto result = read(s_pagemap_file, modified_addresses, entries_size);
+        if (result > 0)
+        {
+            memory_info->is_modified = true;
+
+            size_t modified_count = result / kPageMapEntrySize;
+            for (size_t i = 0; i < modified_count; ++i)
+            {
+                // Get offset from the page-aligned start address of the mapped memory to the address of the modified
+                // page.
+                size_t start_offset = modified_addresses[i] - reinterpret_cast<uintptr_t>(memory_info->aligned_address);
+                size_t page_index   = start_offset >> system_page_pot_shift_;
+
+                memory_info->status_tracker.SetActiveWriteBlock(i, true);
+            }
+        }
+        else if (result == -1)
+        {
+            GFXRECON_LOG_ERROR("Read failed when retreiving soft-dirty bits from /proc/self/pagemap_reset (errno = %d)",
+                               errno);
+        }
+    }
+    else
+    {
+        GFXRECON_LOG_ERROR("Seek failed when retreiving soft-dirty bits from /proc/self/pagemap_reset (errno = %d)",
+                           errno);
+    }
 #endif
 }
 
@@ -758,15 +881,13 @@ void* PageGuardManager::AddTrackedMemory(uint64_t  memory_id,
     }
     else
     {
-#if !defined(WIN32)
-        if (use_write_watch)
+        if (use_write_watch && !InitWriteWatch())
         {
-            // Only supported on Windows.
+            // Only supported on Windows and Linux systems with /proc/pagemap_reset.
             use_write_watch = false;
             GFXRECON_LOG_WARNING("PageGuardManager::AddTrackedMemory() disabled write watch for mapped memory tracking "
                                  "due to lack of support from the current platform")
         }
-#endif
 
         // Align the mapped memory pointer to the start of its page.
         aligned_address = AlignToPageStart(mapped_memory);
