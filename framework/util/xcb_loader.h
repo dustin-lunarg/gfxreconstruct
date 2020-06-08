@@ -42,6 +42,8 @@ class XcbLoader
         decltype(xcb_generate_id)*           generate_id;
         decltype(xcb_get_geometry)*          get_geometry;
         decltype(xcb_get_geometry_reply)*    get_geometry_reply;
+        decltype(xcb_get_input_focus)*       get_input_focus;
+        decltype(xcb_get_input_focus_reply)* get_input_focus_reply;
         decltype(xcb_get_setup)*             get_setup;
         decltype(xcb_intern_atom)*           intern_atom;
         decltype(xcb_intern_atom_reply)*     intern_atom_reply;

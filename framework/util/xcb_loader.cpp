@@ -65,6 +65,10 @@ bool XcbLoader::Initialize()
                 reinterpret_cast<decltype(xcb_get_geometry)*>(util::platform::GetProcAddress(libxcb_, "xcb_get_geometry"));
             function_table_.get_geometry_reply = reinterpret_cast<decltype(xcb_get_geometry_reply)*>(
                 util::platform::GetProcAddress(libxcb_, "xcb_get_geometry_reply"));
+            function_table_.get_input_focus = reinterpret_cast<decltype(xcb_get_input_focus)*>(
+                util::platform::GetProcAddress(libxcb_, "xcb_get_input_focus"));
+            function_table_.get_input_focus_reply = reinterpret_cast<decltype(xcb_get_input_focus_reply)*>(
+                util::platform::GetProcAddress(libxcb_, "xcb_get_input_focus_reply"));
             function_table_.get_setup =
                 reinterpret_cast<decltype(xcb_get_setup)*>(util::platform::GetProcAddress(libxcb_, "xcb_get_setup"));
             function_table_.intern_atom =

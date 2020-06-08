@@ -260,5 +260,12 @@ void XcbApplication::ProcessEvents(bool wait_for_input)
     }
 }
 
+void XcbApplication::Sync() const
+{
+    // This is the method used by xcb_aux_sync() for synchronizing with the X server.
+    const auto& xcb = xcb_loader_.GetFunctionTable();
+    free(xcb.get_input_focus_reply(connection_, xcb.get_input_focus(connection_), nullptr));
+}
+
 GFXRECON_END_NAMESPACE(application)
 GFXRECON_END_NAMESPACE(gfxrecon)

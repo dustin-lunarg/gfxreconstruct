@@ -260,11 +260,6 @@ void XcbWindow::SetSize(const uint32_t width, const uint32_t height)
             {
                 GFXRECON_LOG_ERROR("Failed to resize window with error %u", xcb_application_->GetLastErrorCode());
             }
-            else
-            {
-                // Sleep to ensure window resize has completed.
-                usleep(50000); // 0.05 seconds (same as vktrace)
-            }
         }
     }
 }
@@ -318,11 +313,8 @@ void XcbWindow::SetFullscreen(bool fullscreen)
                                     32,
                                     1,
                                     &bypass);
-                xcb.flush(connection);
+                xcb_application_->Sync();
             }
-
-            // Sleep to ensure window resize has completed.
-            usleep(50000); // 0.05 seconds (same as vktrace)
         }
         else
         {
@@ -470,6 +462,8 @@ bool XcbWindow::WaitForEvent(uint32_t sequence, uint32_t type)
             return false;
         }
     }
+
+    xcb_application_->Sync();
 
     return true;
 }

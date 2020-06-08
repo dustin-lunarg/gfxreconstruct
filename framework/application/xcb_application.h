@@ -60,6 +60,8 @@ class XcbApplication : public Application
 
     virtual void ProcessEvents(bool wait_for_input) override;
 
+    void Sync() const;
+
   private:
     typedef std::unordered_map<xcb_window_t, XcbWindow*> XcbWindowMap;
 
