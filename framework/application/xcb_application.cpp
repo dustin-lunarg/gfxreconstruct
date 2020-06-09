@@ -118,15 +118,6 @@ void XcbApplication::ProcessEvents(bool wait_for_input)
 
         if (event != nullptr)
         {
-            if (event->response_type == 0)
-            {
-                // Set error status and break from event processing loop.
-                auto error           = reinterpret_cast<xcb_generic_error_t*>(event);
-                last_error_sequence_ = error->sequence;
-                last_error_code_     = error->error_code;
-                break;
-            }
-
             uint8_t event_code = event->response_type & 0x7f;
             switch (event_code)
             {
@@ -204,8 +195,7 @@ void XcbApplication::ProcessEvents(bool wait_for_input)
                     if (entry != xcb_windows_.end())
                     {
                         XcbWindow* xcb_window = entry->second;
-                        xcb_window->ResizeNotifyReceived(
-                            configure_event->sequence, configure_event->width, configure_event->height);
+                        xcb_window->HandleResizeNotify(configure_event->width, configure_event->height);
                     }
 
                     break;
@@ -218,7 +208,7 @@ void XcbApplication::ProcessEvents(bool wait_for_input)
                     if (entry != xcb_windows_.end())
                     {
                         XcbWindow* xcb_window = entry->second;
-                        xcb_window->MapNotifyReceived(map_event->sequence, true);
+                        xcb_window->HandleMapNotify(true);
                     }
 
                     break;
@@ -231,20 +221,7 @@ void XcbApplication::ProcessEvents(bool wait_for_input)
                     if (entry != xcb_windows_.end())
                     {
                         XcbWindow* xcb_window = entry->second;
-                        xcb_window->MapNotifyReceived(unmap_event->sequence, false);
-                    }
-
-                    break;
-                }
-                case XCB_DESTROY_NOTIFY:
-                {
-                    auto destroy_event = reinterpret_cast<xcb_destroy_notify_event_t*>(event);
-                    auto entry         = xcb_windows_.find(destroy_event->window);
-
-                    if (entry != xcb_windows_.end())
-                    {
-                        XcbWindow* xcb_window = entry->second;
-                        xcb_window->DestroyNotifyReceived(destroy_event->sequence);
+                        xcb_window->HandleMapNotify(false);
                     }
 
                     break;

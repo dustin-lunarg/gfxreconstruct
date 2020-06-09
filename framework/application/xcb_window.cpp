@@ -147,17 +147,17 @@ bool XcbWindow::Create(
     InitializeAtoms();
 
     // Request notification when user closes window.
-    xcb.change_property(connection, XCB_PROP_MODE_REPLACE, window_, protocol_atom_, 4, 32, 1, &(delete_window_atom_));
+    cookie = xcb.change_property_checked(
+        connection, XCB_PROP_MODE_REPLACE, window_, protocol_atom_, 4, 32, 1, &(delete_window_atom_));
+
+    error = xcb.request_check(connection, cookie);
+    if (error != nullptr)
+    {
+        GFXRECON_LOG_WARNING("Request to receive window close notifications failed with error %u", error->error_code);
+    }
 
     // Set the title.
-    xcb.change_property(connection,
-                        XCB_PROP_MODE_REPLACE,
-                        window_,
-                        XCB_ATOM_WM_NAME,
-                        XCB_ATOM_STRING,
-                        8,
-                        static_cast<uint32_t>(title.length()),
-                        title.c_str());
+    SetTitle(title);
 
     // Display the window.
     SetVisibility(true);
@@ -165,7 +165,7 @@ bool XcbWindow::Create(
     // Enable fullscreen if necessary.
     if (go_fullscreen)
     {
-        SetFullscreen(true);
+        SetFullscreen(true, true);
     }
 
     return true;
@@ -178,20 +178,23 @@ bool XcbWindow::Destroy()
         auto&             xcb        = xcb_application_->GetXcbFunctionTable();
         xcb_connection_t* connection = xcb_application_->GetConnection();
 
-        SetFullscreen(false);
+        SetFullscreen(false, false);
         SetVisibility(false);
 
-        xcb_void_cookie_t cookie = xcb.destroy_window(connection, window_);
-        xcb.flush(connection);
-
-        if (!WaitForEvent(cookie.sequence, XCB_DESTROY_NOTIFY))
-        {
-            GFXRECON_LOG_ERROR("Failed to destroy window with error %u", xcb_application_->GetLastErrorCode());
-        }
+        xcb_void_cookie_t cookie = xcb.destroy_window_checked(connection, window_);
 
         xcb_application_->UnregisterXcbWindow(this);
         window_ = 0;
-        return true;
+
+        xcb_generic_error_t* error  = xcb.request_check(connection, cookie);
+        if (error == nullptr)
+        {
+            return true;
+        }
+        else
+        {
+            GFXRECON_LOG_ERROR("Failed to destroy window with error %u", error->error_code);
+        }
     }
 
     return false;
@@ -202,15 +205,20 @@ void XcbWindow::SetTitle(const std::string& title)
     auto&             xcb        = xcb_application_->GetXcbFunctionTable();
     xcb_connection_t* connection = xcb_application_->GetConnection();
 
-    xcb.change_property(connection,
-                        XCB_PROP_MODE_REPLACE,
-                        window_,
-                        XCB_ATOM_WM_NAME,
-                        XCB_ATOM_STRING,
-                        8,
-                        static_cast<uint32_t>(title.length()),
-                        title.c_str());
-    xcb.flush(connection);
+    xcb_void_cookie_t cookie = xcb.change_property_checked(connection,
+                                                           XCB_PROP_MODE_REPLACE,
+                                                           window_,
+                                                           XCB_ATOM_WM_NAME,
+                                                           XCB_ATOM_STRING,
+                                                           8,
+                                                           static_cast<uint32_t>(title.length()),
+                                                           title.c_str());
+
+    xcb_generic_error_t* error = xcb.request_check(connection, cookie);
+    if (error != nullptr)
+    {
+        GFXRECON_LOG_WARNING("Failed to set window title with error %u", error->error_code);
+    }
 }
 
 void XcbWindow::SetPosition(const int32_t x, const int32_t y)
@@ -219,8 +227,17 @@ void XcbWindow::SetPosition(const int32_t x, const int32_t y)
     xcb_connection_t* connection = xcb_application_->GetConnection();
     uint32_t          values[]   = { static_cast<uint32_t>(x), static_cast<uint32_t>(y) };
 
-    xcb.configure_window(connection, window_, kConfigurePositionMask, values);
-    xcb.flush(connection);
+    xcb_void_cookie_t cookie = xcb.configure_window_checked(connection, window_, kConfigurePositionMask, values);
+
+    xcb_generic_error_t* error = xcb.request_check(connection, cookie);
+    if (error == nullptr)
+    {
+        xcb_application_->Sync();
+    }
+    else
+    {
+        GFXRECON_LOG_WARNING("Failed to set window position with error %u", error->error_code);
+    }
 }
 
 void XcbWindow::SetSize(const uint32_t width, const uint32_t height)
@@ -233,7 +250,7 @@ void XcbWindow::SetSize(const uint32_t width, const uint32_t height)
 
         if ((screen_width_ == width) || (screen_height_ == height))
         {
-            SetFullscreen(true);
+            SetFullscreen(true, true);
         }
         else
         {
@@ -248,23 +265,25 @@ void XcbWindow::SetSize(const uint32_t width, const uint32_t height)
                     screen_height_);
             }
 
-            SetFullscreen(false);
+            SetFullscreen(false, false);
 
             uint32_t values[] = { width, height };
-            cookie            = xcb.configure_window(connection, window_, kConfigureSizeMask, values);
+            cookie            = xcb.configure_window_checked(connection, window_, kConfigureSizeMask, values);
 
-            xcb.flush(connection);
-
-            // Wait for configure notification.
-            if (!WaitForEvent(cookie.sequence, XCB_CONFIGURE_NOTIFY))
+            xcb_generic_error_t* error = xcb.request_check(connection, cookie);
+            if (error == nullptr)
             {
-                GFXRECON_LOG_ERROR("Failed to resize window with error %u", xcb_application_->GetLastErrorCode());
+                xcb_application_->Sync();
+            }
+            else
+            {
+                GFXRECON_LOG_ERROR("Failed to resize window with error %u", error->error_code);
             }
         }
     }
 }
 
-void XcbWindow::SetFullscreen(bool fullscreen)
+void XcbWindow::SetFullscreen(bool fullscreen, bool sync)
 {
     if (fullscreen != fullscreen_)
     {
@@ -285,16 +304,14 @@ void XcbWindow::SetFullscreen(bool fullscreen)
         event.data.data32[4] = 0;
 
         xcb_void_cookie_t event_cookie =
-            xcb.send_event(connection,
-                           0,
-                           screen->root,
-                           XCB_EVENT_MASK_SUBSTRUCTURE_NOTIFY | XCB_EVENT_MASK_SUBSTRUCTURE_REDIRECT,
-                           reinterpret_cast<const char*>(&event));
+            xcb.send_event_checked(connection,
+                                   0,
+                                   screen->root,
+                                   XCB_EVENT_MASK_SUBSTRUCTURE_NOTIFY | XCB_EVENT_MASK_SUBSTRUCTURE_REDIRECT,
+                                   reinterpret_cast<const char*>(&event));
 
-        xcb.flush(connection);
-
-        // Wait for configure notification.
-        if (WaitForEvent(event_cookie.sequence, XCB_CONFIGURE_NOTIFY))
+        xcb_generic_error_t* event_error = xcb.request_check(connection, event_cookie);
+        if (event_error == nullptr)
         {
             fullscreen_ = fullscreen;
 
@@ -304,23 +321,36 @@ void XcbWindow::SetFullscreen(bool fullscreen)
                 // preference on exiting full screen. Compositor bypass is disabled to work around a GNOME + NVIDIA
                 // issue that leads to a VK_ERROR_OUT_OF_DATE_KHR error with full screen replay.
                 // TODO: This could be an option.
-                int32_t bypass = fullscreen ? 2 : 0;
-                xcb.change_property(connection,
-                                    XCB_PROP_MODE_REPLACE,
-                                    window_,
-                                    bypass_compositor_atom_,
-                                    XCB_ATOM_CARDINAL,
-                                    32,
-                                    1,
-                                    &bypass);
+                int32_t              bypass        = fullscreen ? 2 : 0;
+                xcb_void_cookie_t    change_cookie = xcb.change_property_checked(connection,
+                                                                              XCB_PROP_MODE_REPLACE,
+                                                                              window_,
+                                                                              bypass_compositor_atom_,
+                                                                              XCB_ATOM_CARDINAL,
+                                                                              32,
+                                                                              1,
+                                                                              &bypass);
+                xcb_generic_error_t* change_error  = xcb.request_check(connection, event_cookie);
+                if (change_error != nullptr)
+                {
+                    GFXRECON_LOG_WARNING("Failed to change window's bypass compositor property with error %u",
+                                         change_error->error_code);
+                }
+            }
+
+            if (sync)
+            {
                 xcb_application_->Sync();
+            }
+            else
+            {
+                xcb.flush(connection);
             }
         }
         else
         {
-            GFXRECON_LOG_ERROR("Failed to %s fullscreen mode with error %u",
-                               fullscreen ? "enter" : "exit",
-                               xcb_application_->GetLastErrorCode());
+            GFXRECON_LOG_ERROR(
+                "Failed to %s fullscreen mode with error %u", fullscreen ? "enter" : "exit", event_error->error_code);
         }
     }
 }
@@ -335,20 +365,21 @@ void XcbWindow::SetVisibility(bool show)
 
         if (show)
         {
-            cookie = xcb.map_window(connection, window_);
+            cookie = xcb.map_window_checked(connection, window_);
         }
         else
         {
-            cookie = xcb.unmap_window(connection, window_);
+            cookie = xcb.unmap_window_checked(connection, window_);
         }
 
-        xcb.flush(connection);
-
-        // Wait for map/unmap notification.
-        if (!WaitForEvent(cookie.sequence, XCB_MAP_NOTIFY))
+        xcb_generic_error_t* error = xcb.request_check(connection, cookie);
+        if (error == nullptr)
         {
-            GFXRECON_LOG_ERROR("Failed to change window visibility with error %u",
-                               xcb_application_->GetLastErrorCode());
+            xcb_application_->Sync();
+        }
+        else
+        {
+            GFXRECON_LOG_ERROR("Failed to change window visibility with error %u", error->error_code);
         }
     }
 }
@@ -359,8 +390,16 @@ void XcbWindow::SetForeground()
     xcb_connection_t* connection = xcb_application_->GetConnection();
     uint32_t          values[]   = { XCB_STACK_MODE_ABOVE };
 
-    xcb.configure_window(connection, window_, XCB_CONFIG_WINDOW_STACK_MODE, values);
-    xcb.flush(connection);
+    xcb_void_cookie_t cookie = xcb.configure_window_checked(connection, window_, XCB_CONFIG_WINDOW_STACK_MODE, values);
+    xcb_generic_error_t* error = xcb.request_check(connection, cookie);
+    if (error == nullptr)
+    {
+        xcb_application_->Sync();
+    }
+    else
+    {
+        GFXRECON_LOG_WARNING("Failed to set foreground window with error %u", error->error_code);
+    }
 }
 
 bool XcbWindow::GetNativeHandle(HandleType type, void** handle)
@@ -434,38 +473,6 @@ void XcbWindow::InitializeAtoms()
     state_atom_             = GetAtomReply(connection, kStateName, state_atom_cookie);
     state_fullscreen_atom_  = GetAtomReply(connection, kStateFullscreenName, state_fullscreen_atom_cookie);
     bypass_compositor_atom_ = GetAtomReply(connection, kBypassCompositorName, bypass_compositor_atom_cookie);
-}
-
-void XcbWindow::CheckEventStatus(uint32_t sequence, uint32_t type)
-{
-    if ((sequence >= pending_event_.sequence) && (type == pending_event_.type))
-    {
-        pending_event_.complete = true;
-    }
-}
-
-bool XcbWindow::WaitForEvent(uint32_t sequence, uint32_t type)
-{
-    pending_event_.sequence = sequence;
-    pending_event_.type     = type;
-    pending_event_.complete = false;
-
-    xcb_application_->ClearLastError();
-
-    while (!pending_event_.complete && xcb_application_->IsRunning())
-    {
-        xcb_application_->ProcessEvents(true);
-
-        // TODO: We may need to check for any error, not an error for a specific sequence number.
-        if (xcb_application_->GetLastErrorSequence() == pending_event_.sequence)
-        {
-            return false;
-        }
-    }
-
-    xcb_application_->Sync();
-
-    return true;
 }
 
 XcbWindowFactory::XcbWindowFactory(XcbApplication* application) : xcb_application_(application)

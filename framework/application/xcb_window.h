@@ -38,20 +38,13 @@ class XcbWindow : public decode::Window
 
     xcb_atom_t GetDeleteWindowAtom() const { return delete_window_atom_; }
 
-    void MapNotifyReceived(uint32_t sequence, bool visible)
-    {
-        CheckEventStatus(sequence, XCB_MAP_NOTIFY);
-        visible_ = visible;
-    }
+    void HandleMapNotify(bool visible) { visible_ = visible; }
 
-    void ResizeNotifyReceived(uint32_t sequence, uint32_t width, uint32_t height)
+    void HandleResizeNotify(uint32_t width, uint32_t height)
     {
-        CheckEventStatus(sequence, XCB_CONFIGURE_NOTIFY);
         width_  = width;
         height_ = height;
     }
-
-    void DestroyNotifyReceived(uint32_t sequence) { CheckEventStatus(sequence, XCB_DESTROY_NOTIFY); }
 
     virtual bool Create(const std::string& title,
                         const int32_t      xpos,
@@ -79,7 +72,7 @@ class XcbWindow : public decode::Window
                                    VkSurfaceKHR*                pSurface) override;
 
   private:
-    void SetFullscreen(bool fullscreen);
+    void SetFullscreen(bool fullscreen, bool sync);
 
     xcb_intern_atom_cookie_t
     SendAtomRequest(xcb_connection_t* connection, const char* name, uint8_t only_if_exists) const;
@@ -88,25 +81,12 @@ class XcbWindow : public decode::Window
 
     void InitializeAtoms();
 
-    void CheckEventStatus(uint32_t sequence, uint32_t type);
-
-    bool WaitForEvent(uint32_t sequence, uint32_t type);
-
-  private:
-    struct EventInfo
-    {
-        uint32_t sequence{ 0 };
-        uint32_t type{ 0 };
-        bool     complete{ false };
-    };
-
   private:
     XcbApplication* xcb_application_;
     uint32_t        width_;
     uint32_t        height_;
     uint32_t        screen_width_;
     uint32_t        screen_height_;
-    EventInfo       pending_event_;
     bool            visible_;
     bool            fullscreen_;
     xcb_window_t    window_;

@@ -42,21 +42,11 @@ class XcbApplication : public Application
 
     xcb_screen_t* GetScreen() const { return screen_; }
 
-    uint32_t GetLastErrorSequence() const { return last_error_sequence_; }
-
-    uint8_t GetLastErrorCode() const { return last_error_code_; }
-
     virtual bool Initialize(decode::FileProcessor* file_processor) override;
 
     bool RegisterXcbWindow(XcbWindow* window);
 
     bool UnregisterXcbWindow(XcbWindow* window);
-
-    void ClearLastError()
-    {
-        last_error_sequence_ = 0;
-        last_error_code_     = 0;
-    }
 
     virtual void ProcessEvents(bool wait_for_input) override;
 
@@ -68,8 +58,6 @@ class XcbApplication : public Application
   private:
     xcb_connection_t* connection_;
     xcb_screen_t*     screen_;
-    uint32_t          last_error_sequence_;
-    uint8_t           last_error_code_;
     XcbWindowMap      xcb_windows_;
     util::XcbLoader   xcb_loader_;
 };

@@ -45,24 +45,32 @@ bool XcbLoader::Initialize()
         {
             function_table_.change_property = reinterpret_cast<decltype(xcb_change_property)*>(
                 util::platform::GetProcAddress(libxcb_, "xcb_change_property"));
+            function_table_.change_property_checked = reinterpret_cast<decltype(xcb_change_property_checked)*>(
+                util::platform::GetProcAddress(libxcb_, "xcb_change_property_checked"));
             function_table_.configure_window = reinterpret_cast<decltype(xcb_configure_window)*>(
                 util::platform::GetProcAddress(libxcb_, "xcb_configure_window"));
+            function_table_.configure_window_checked = reinterpret_cast<decltype(xcb_configure_window_checked)*>(
+                util::platform::GetProcAddress(libxcb_, "xcb_configure_window_checked"));
             function_table_.connect =
                 reinterpret_cast<decltype(xcb_connect)*>(util::platform::GetProcAddress(libxcb_, "xcb_connect"));
             function_table_.connection_has_error = reinterpret_cast<decltype(xcb_connection_has_error)*>(
                 util::platform::GetProcAddress(libxcb_, "xcb_connection_has_error"));
+            function_table_.create_window = reinterpret_cast<decltype(xcb_create_window)*>(
+                util::platform::GetProcAddress(libxcb_, "xcb_create_window"));
             function_table_.create_window_checked = reinterpret_cast<decltype(xcb_create_window_checked)*>(
                 util::platform::GetProcAddress(libxcb_, "xcb_create_window_checked"));
             function_table_.destroy_window = reinterpret_cast<decltype(xcb_destroy_window)*>(
                 util::platform::GetProcAddress(libxcb_, "xcb_destroy_window"));
+            function_table_.destroy_window_checked = reinterpret_cast<decltype(xcb_destroy_window_checked)*>(
+                util::platform::GetProcAddress(libxcb_, "xcb_destroy_window_checked"));
             function_table_.disconnect =
                 reinterpret_cast<decltype(xcb_disconnect)*>(util::platform::GetProcAddress(libxcb_, "xcb_disconnect"));
             function_table_.flush =
                 reinterpret_cast<decltype(xcb_flush)*>(util::platform::GetProcAddress(libxcb_, "xcb_flush"));
-            function_table_.generate_id =
-                reinterpret_cast<decltype(xcb_generate_id)*>(util::platform::GetProcAddress(libxcb_, "xcb_generate_id"));
-            function_table_.get_geometry =
-                reinterpret_cast<decltype(xcb_get_geometry)*>(util::platform::GetProcAddress(libxcb_, "xcb_get_geometry"));
+            function_table_.generate_id = reinterpret_cast<decltype(xcb_generate_id)*>(
+                util::platform::GetProcAddress(libxcb_, "xcb_generate_id"));
+            function_table_.get_geometry = reinterpret_cast<decltype(xcb_get_geometry)*>(
+                util::platform::GetProcAddress(libxcb_, "xcb_get_geometry"));
             function_table_.get_geometry_reply = reinterpret_cast<decltype(xcb_get_geometry_reply)*>(
                 util::platform::GetProcAddress(libxcb_, "xcb_get_geometry_reply"));
             function_table_.get_input_focus = reinterpret_cast<decltype(xcb_get_input_focus)*>(
@@ -71,24 +79,30 @@ bool XcbLoader::Initialize()
                 util::platform::GetProcAddress(libxcb_, "xcb_get_input_focus_reply"));
             function_table_.get_setup =
                 reinterpret_cast<decltype(xcb_get_setup)*>(util::platform::GetProcAddress(libxcb_, "xcb_get_setup"));
-            function_table_.intern_atom =
-                reinterpret_cast<decltype(xcb_intern_atom)*>(util::platform::GetProcAddress(libxcb_, "xcb_intern_atom"));
+            function_table_.intern_atom = reinterpret_cast<decltype(xcb_intern_atom)*>(
+                util::platform::GetProcAddress(libxcb_, "xcb_intern_atom"));
             function_table_.intern_atom_reply = reinterpret_cast<decltype(xcb_intern_atom_reply)*>(
                 util::platform::GetProcAddress(libxcb_, "xcb_intern_atom_reply"));
             function_table_.map_window =
                 reinterpret_cast<decltype(xcb_map_window)*>(util::platform::GetProcAddress(libxcb_, "xcb_map_window"));
+            function_table_.map_window_checked = reinterpret_cast<decltype(xcb_map_window_checked)*>(
+                util::platform::GetProcAddress(libxcb_, "xcb_map_window_checked"));
             function_table_.poll_for_event = reinterpret_cast<decltype(xcb_poll_for_event)*>(
                 util::platform::GetProcAddress(libxcb_, "xcb_poll_for_event"));
             function_table_.request_check = reinterpret_cast<decltype(xcb_request_check)*>(
                 util::platform::GetProcAddress(libxcb_, "xcb_request_check"));
-            function_table_.screen_next =
-                reinterpret_cast<decltype(xcb_screen_next)*>(util::platform::GetProcAddress(libxcb_, "xcb_screen_next"));
+            function_table_.screen_next = reinterpret_cast<decltype(xcb_screen_next)*>(
+                util::platform::GetProcAddress(libxcb_, "xcb_screen_next"));
             function_table_.send_event =
                 reinterpret_cast<decltype(xcb_send_event)*>(util::platform::GetProcAddress(libxcb_, "xcb_send_event"));
+            function_table_.send_event_checked = reinterpret_cast<decltype(xcb_send_event_checked)*>(
+                util::platform::GetProcAddress(libxcb_, "xcb_send_event_checked"));
             function_table_.setup_roots_iterator = reinterpret_cast<decltype(xcb_setup_roots_iterator)*>(
                 util::platform::GetProcAddress(libxcb_, "xcb_setup_roots_iterator"));
-            function_table_.unmap_window =
-                reinterpret_cast<decltype(xcb_unmap_window)*>(util::platform::GetProcAddress(libxcb_, "xcb_unmap_window"));
+            function_table_.unmap_window = reinterpret_cast<decltype(xcb_unmap_window)*>(
+                util::platform::GetProcAddress(libxcb_, "xcb_unmap_window"));
+            function_table_.unmap_window_checked = reinterpret_cast<decltype(xcb_unmap_window_checked)*>(
+                util::platform::GetProcAddress(libxcb_, "xcb_unmap_window_checked"));
             function_table_.wait_for_event = reinterpret_cast<decltype(xcb_wait_for_event)*>(
                 util::platform::GetProcAddress(libxcb_, "xcb_wait_for_event"));
         }
