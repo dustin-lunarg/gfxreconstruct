@@ -70,6 +70,8 @@ class AndroidWindow : public decode::Window
     uint32_t            width_;
     uint32_t            height_;
     uint32_t            pre_transform_;
+    VkSurfaceKHR        surface_;
+    uint32_t            surface_count_;
 };
 
 class AndroidWindowFactory : public decode::WindowFactory

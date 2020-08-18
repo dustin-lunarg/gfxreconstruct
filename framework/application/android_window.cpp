@@ -30,7 +30,8 @@ GFXRECON_BEGIN_NAMESPACE(gfxrecon)
 GFXRECON_BEGIN_NAMESPACE(application)
 
 AndroidWindow::AndroidWindow(AndroidApplication* application, ANativeWindow* window) :
-    android_application_(application), window_(window), width_(0), height_(0), pre_transform_(0)
+    android_application_(application), window_(window), width_(0), height_(0), pre_transform_(0),
+    surface_(VK_NULL_HANDLE), surface_count_(0)
 {
     assert((application != nullptr) && (window != nullptr));
 
@@ -110,23 +111,44 @@ VkResult AndroidWindow::CreateSurface(const encode::InstanceTable* table,
                                       VkFlags                      flags,
                                       VkSurfaceKHR*                pSurface)
 {
+    VkResult result = VK_SUCCESS;
+
     if (table != nullptr)
     {
-        VkAndroidSurfaceCreateInfoKHR create_info{
-            VK_STRUCTURE_TYPE_ANDROID_SURFACE_CREATE_INFO_KHR, nullptr, flags, window_
-        };
+        if (surface_ == VK_NULL_HANDLE)
+        {
+            VkAndroidSurfaceCreateInfoKHR create_info{
+                VK_STRUCTURE_TYPE_ANDROID_SURFACE_CREATE_INFO_KHR, nullptr, flags, window_
+            };
 
-        return table->CreateAndroidSurfaceKHR(instance, &create_info, nullptr, pSurface);
+            result = table->CreateAndroidSurfaceKHR(instance, &create_info, nullptr, &surface_);
+        }
+
+        if ((result == VK_SUCCESS) && (pSurface != nullptr))
+        {
+            (*pSurface) = surface_;
+            ++surface_count_;
+        }
+    }
+    else
+    {
+        result = VK_ERROR_INITIALIZATION_FAILED;
     }
 
-    return VK_ERROR_INITIALIZATION_FAILED;
+    return result;
 }
 
 void AndroidWindow::DestroySurface(const encode::InstanceTable* table, VkInstance instance, VkSurfaceKHR surface)
 {
     if (table != nullptr)
     {
-        table->DestroySurfaceKHR(instance, surface, nullptr);
+        assert(surface == surface_);
+
+        if (--surface_count_ == 0)
+        {
+            table->DestroySurfaceKHR(instance, surface_, nullptr);
+            surface_ = VK_NULL_HANDLE;
+        }
     }
 }
 
