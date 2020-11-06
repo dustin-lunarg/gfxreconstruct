@@ -893,7 +893,8 @@ class IDXGIFactory_Wrapper : public IDXGIObject_Wrapper
                                                       DXGI_SWAP_CHAIN_DESC* pDesc,
                                                       IDXGISwapChain**      ppSwapChain)
     {
-        return GetObjectAs<IDXGIFactory>()->CreateSwapChain(pDevice, pDesc, ppSwapChain);
+        return GetObjectAs<IDXGIFactory>()->CreateSwapChain(
+            UnwrapObject<IUnknown_Wrapper>(pDevice), pDesc, ppSwapChain);
     }
 
     virtual HRESULT STDMETHODCALLTYPE CreateSoftwareAdapter(HMODULE Module, IDXGIAdapter** ppAdapter)
@@ -969,7 +970,7 @@ class IDXGIFactory2_Wrapper : public IDXGIFactory1_Wrapper
                                                              IDXGISwapChain1**                      ppSwapChain)
     {
         return GetObjectAs<IDXGIFactory2>()->CreateSwapChainForHwnd(
-            pDevice, hWnd, pDesc, pFullscreenDesc, pRestrictToOutput, ppSwapChain);
+            UnwrapObject<IUnknown_Wrapper>(pDevice), hWnd, pDesc, pFullscreenDesc, pRestrictToOutput, ppSwapChain);
     }
 
     virtual HRESULT STDMETHODCALLTYPE CreateSwapChainForCoreWindow(IUnknown*                    pDevice,
@@ -979,7 +980,7 @@ class IDXGIFactory2_Wrapper : public IDXGIFactory1_Wrapper
                                                                    IDXGISwapChain1**            ppSwapChain)
     {
         return GetObjectAs<IDXGIFactory2>()->CreateSwapChainForCoreWindow(
-            pDevice, pWindow, pDesc, pRestrictToOutput, ppSwapChain);
+            UnwrapObject<IUnknown_Wrapper>(pDevice), pWindow, pDesc, pRestrictToOutput, ppSwapChain);
     }
 
     virtual HRESULT STDMETHODCALLTYPE GetSharedResourceAdapterLuid(HANDLE hResource, LUID* pLuid)
@@ -1023,7 +1024,7 @@ class IDXGIFactory2_Wrapper : public IDXGIFactory1_Wrapper
                                                                     IDXGISwapChain1**            ppSwapChain)
     {
         return GetObjectAs<IDXGIFactory2>()->CreateSwapChainForComposition(
-            pDevice, pDesc, pRestrictToOutput, ppSwapChain);
+            UnwrapObject<IUnknown_Wrapper>(pDevice), pDesc, pRestrictToOutput, ppSwapChain);
     }
 };
 
