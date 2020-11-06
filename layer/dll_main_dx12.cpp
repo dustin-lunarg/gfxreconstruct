@@ -17,9 +17,15 @@
 // This needs to be included before d3d12.h so that IIDs are defined and not just declared.
 #include <initguid.h>
 
+#include "dx12_dispatch_table.h"
+
 #include <atomic>
 #include <cstdint>
 #include <d3d12.h>
+#include <dxgi.h>
+#include <dxgi1_2.h>
+#include <dxgi1_3.h>
+#include <dxgi1_4.h>
 #include <functional>
 #include <mutex>
 #include <Unknwn.h>
@@ -801,6 +807,318 @@ class ID3D12CommandQueue_Wrapper : public ID3D12Pageable_Wrapper
 std::mutex                                             ID3D12CommandQueue_Wrapper::active_wrappers_lock_;
 std::unordered_map<void*, ID3D12CommandQueue_Wrapper*> ID3D12CommandQueue_Wrapper::active_wrappers_;
 
+class IDXGIObject_Wrapper : public IUnknown_Wrapper
+{
+  public:
+    typedef IDXGIObject WrappedType;
+
+  public:
+    IDXGIObject_Wrapper(IDXGIObject* object) : IUnknown_Wrapper(object) {}
+
+    virtual HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void** ppvObject) override
+    {
+        // PROTOTYPE: When up casting, return the current wrapper.
+        if (IsEqualIID(IID_IDXGIObject, riid))
+        {
+            AddRef();
+            (*ppvObject) = this;
+            return S_OK;
+        }
+        else
+        {
+            return IUnknown_Wrapper::QueryInterface(riid, ppvObject);
+        }
+    }
+
+    virtual HRESULT STDMETHODCALLTYPE SetPrivateData(REFGUID Name, UINT DataSize, const void* pData)
+    {
+        return GetObjectAs<IDXGIObject>()->SetPrivateData(Name, DataSize, pData);
+    }
+
+    virtual HRESULT STDMETHODCALLTYPE SetPrivateDataInterface(REFGUID Name, const IUnknown* pUnknown)
+    {
+        return GetObjectAs<IDXGIObject>()->SetPrivateDataInterface(Name, pUnknown);
+    }
+
+    virtual HRESULT STDMETHODCALLTYPE GetPrivateData(REFGUID Name, UINT* pDataSize, void* pData)
+    {
+        return GetObjectAs<IDXGIObject>()->GetPrivateData(Name, pDataSize, pData);
+    }
+
+    virtual HRESULT STDMETHODCALLTYPE GetParent(REFIID riid, void** ppParent)
+    {
+        return GetObjectAs<IDXGIObject>()->GetParent(riid, ppParent);
+    }
+};
+
+class IDXGIFactory_Wrapper : public IDXGIObject_Wrapper
+{
+  public:
+    typedef IDXGIFactory WrappedType;
+
+  public:
+    IDXGIFactory_Wrapper(IDXGIFactory* object) : IDXGIObject_Wrapper(object) {}
+
+    virtual HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void** ppvObject) override
+    {
+        // PROTOTYPE: When up casting, return the current wrapper.
+        if (IsEqualIID(IID_IDXGIFactory, riid))
+        {
+            AddRef();
+            (*ppvObject) = this;
+            return S_OK;
+        }
+        else
+        {
+            return IUnknown_Wrapper::QueryInterface(riid, ppvObject);
+        }
+    }
+
+    virtual HRESULT STDMETHODCALLTYPE EnumAdapters(UINT Adapter, IDXGIAdapter** ppAdapter)
+    {
+        return GetObjectAs<IDXGIFactory>()->EnumAdapters(Adapter, ppAdapter);
+    }
+
+    virtual HRESULT STDMETHODCALLTYPE MakeWindowAssociation(HWND WindowHandle, UINT Flags)
+    {
+        return GetObjectAs<IDXGIFactory>()->MakeWindowAssociation(WindowHandle, Flags);
+    }
+
+    virtual HRESULT STDMETHODCALLTYPE GetWindowAssociation(HWND* pWindowHandle)
+    {
+        return GetObjectAs<IDXGIFactory>()->GetWindowAssociation(pWindowHandle);
+    }
+
+    virtual HRESULT STDMETHODCALLTYPE CreateSwapChain(IUnknown*             pDevice,
+                                                      DXGI_SWAP_CHAIN_DESC* pDesc,
+                                                      IDXGISwapChain**      ppSwapChain)
+    {
+        return GetObjectAs<IDXGIFactory>()->CreateSwapChain(pDevice, pDesc, ppSwapChain);
+    }
+
+    virtual HRESULT STDMETHODCALLTYPE CreateSoftwareAdapter(HMODULE Module, IDXGIAdapter** ppAdapter)
+    {
+        return GetObjectAs<IDXGIFactory>()->CreateSoftwareAdapter(Module, ppAdapter);
+    }
+};
+
+class IDXGIFactory1_Wrapper : public IDXGIFactory_Wrapper
+{
+  public:
+    typedef IDXGIFactory1 WrappedType;
+
+  public:
+    IDXGIFactory1_Wrapper(IDXGIFactory1* object) : IDXGIFactory_Wrapper(object) {}
+
+    virtual HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void** ppvObject) override
+    {
+        // PROTOTYPE: When up casting, return the current wrapper.
+        if (IsEqualIID(IID_IDXGIFactory1, riid))
+        {
+            AddRef();
+            (*ppvObject) = this;
+            return S_OK;
+        }
+        else
+        {
+            return IUnknown_Wrapper::QueryInterface(riid, ppvObject);
+        }
+    }
+
+    virtual HRESULT STDMETHODCALLTYPE EnumAdapters1(UINT Adapter, IDXGIAdapter1** ppAdapter)
+    {
+        return GetObjectAs<IDXGIFactory1>()->EnumAdapters1(Adapter, ppAdapter);
+    }
+
+    virtual BOOL STDMETHODCALLTYPE IsCurrent(void) { return GetObjectAs<IDXGIFactory1>()->IsCurrent(); }
+};
+
+class IDXGIFactory2_Wrapper : public IDXGIFactory1_Wrapper
+{
+  public:
+    typedef IDXGIFactory2 WrappedType;
+
+  public:
+    IDXGIFactory2_Wrapper(IDXGIFactory2* object) : IDXGIFactory1_Wrapper(object) {}
+
+    virtual HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void** ppvObject) override
+    {
+        // PROTOTYPE: When up casting, return the current wrapper.
+        if (IsEqualIID(IID_IDXGIFactory2, riid))
+        {
+            AddRef();
+            (*ppvObject) = this;
+            return S_OK;
+        }
+        else
+        {
+            return IUnknown_Wrapper::QueryInterface(riid, ppvObject);
+        }
+    }
+
+    virtual BOOL STDMETHODCALLTYPE IsWindowedStereoEnabled(void)
+    {
+        return GetObjectAs<IDXGIFactory2>()->IsWindowedStereoEnabled();
+    }
+
+    virtual HRESULT STDMETHODCALLTYPE CreateSwapChainForHwnd(IUnknown*                              pDevice,
+                                                             HWND                                   hWnd,
+                                                             const DXGI_SWAP_CHAIN_DESC1*           pDesc,
+                                                             const DXGI_SWAP_CHAIN_FULLSCREEN_DESC* pFullscreenDesc,
+                                                             IDXGIOutput*                           pRestrictToOutput,
+                                                             IDXGISwapChain1**                      ppSwapChain)
+    {
+        return GetObjectAs<IDXGIFactory2>()->CreateSwapChainForHwnd(
+            pDevice, hWnd, pDesc, pFullscreenDesc, pRestrictToOutput, ppSwapChain);
+    }
+
+    virtual HRESULT STDMETHODCALLTYPE CreateSwapChainForCoreWindow(IUnknown*                    pDevice,
+                                                                   IUnknown*                    pWindow,
+                                                                   const DXGI_SWAP_CHAIN_DESC1* pDesc,
+                                                                   IDXGIOutput*                 pRestrictToOutput,
+                                                                   IDXGISwapChain1**            ppSwapChain)
+    {
+        return GetObjectAs<IDXGIFactory2>()->CreateSwapChainForCoreWindow(
+            pDevice, pWindow, pDesc, pRestrictToOutput, ppSwapChain);
+    }
+
+    virtual HRESULT STDMETHODCALLTYPE GetSharedResourceAdapterLuid(HANDLE hResource, LUID* pLuid)
+    {
+        return GetObjectAs<IDXGIFactory2>()->GetSharedResourceAdapterLuid(hResource, pLuid);
+    }
+
+    virtual HRESULT STDMETHODCALLTYPE RegisterStereoStatusWindow(HWND WindowHandle, UINT wMsg, DWORD* pdwCookie)
+    {
+        return GetObjectAs<IDXGIFactory2>()->RegisterStereoStatusWindow(WindowHandle, wMsg, pdwCookie);
+    }
+
+    virtual HRESULT STDMETHODCALLTYPE RegisterStereoStatusEvent(HANDLE hEvent, DWORD* pdwCookie)
+    {
+        return GetObjectAs<IDXGIFactory2>()->RegisterStereoStatusEvent(hEvent, pdwCookie);
+    }
+
+    virtual void STDMETHODCALLTYPE UnregisterStereoStatus(DWORD dwCookie)
+    {
+        return GetObjectAs<IDXGIFactory2>()->UnregisterStereoStatus(dwCookie);
+    }
+
+    virtual HRESULT STDMETHODCALLTYPE RegisterOcclusionStatusWindow(HWND WindowHandle, UINT wMsg, DWORD* pdwCookie)
+    {
+        return GetObjectAs<IDXGIFactory2>()->RegisterOcclusionStatusWindow(WindowHandle, wMsg, pdwCookie);
+    }
+
+    virtual HRESULT STDMETHODCALLTYPE RegisterOcclusionStatusEvent(HANDLE hEvent, DWORD* pdwCookie)
+    {
+        return GetObjectAs<IDXGIFactory2>()->RegisterOcclusionStatusEvent(hEvent, pdwCookie);
+    }
+
+    virtual void STDMETHODCALLTYPE UnregisterOcclusionStatus(DWORD dwCookie)
+    {
+        return GetObjectAs<IDXGIFactory2>()->UnregisterOcclusionStatus(dwCookie);
+    }
+
+    virtual HRESULT STDMETHODCALLTYPE CreateSwapChainForComposition(IUnknown*                    pDevice,
+                                                                    const DXGI_SWAP_CHAIN_DESC1* pDesc,
+                                                                    IDXGIOutput*                 pRestrictToOutput,
+                                                                    IDXGISwapChain1**            ppSwapChain)
+    {
+        return GetObjectAs<IDXGIFactory2>()->CreateSwapChainForComposition(
+            pDevice, pDesc, pRestrictToOutput, ppSwapChain);
+    }
+};
+
+class IDXGIFactory3_Wrapper : public IDXGIFactory2_Wrapper
+{
+  public:
+    typedef IDXGIFactory3 WrappedType;
+
+  public:
+    IDXGIFactory3_Wrapper(IDXGIFactory3* object) : IDXGIFactory2_Wrapper(object) {}
+
+    virtual HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void** ppvObject) override
+    {
+        // PROTOTYPE: When up casting, return the current wrapper.
+        if (IsEqualIID(IID_IDXGIFactory3, riid))
+        {
+            AddRef();
+            (*ppvObject) = this;
+            return S_OK;
+        }
+        else
+        {
+            return IUnknown_Wrapper::QueryInterface(riid, ppvObject);
+        }
+    }
+
+    virtual UINT STDMETHODCALLTYPE GetCreationFlags(void) { return GetObjectAs<IDXGIFactory3>()->GetCreationFlags(); }
+};
+
+class IDXGIFactory4_Wrapper : public IDXGIFactory3_Wrapper
+{
+  public:
+    typedef IDXGIFactory4 WrappedType;
+
+  public:
+    IDXGIFactory4_Wrapper(IDXGIFactory4* object) : IDXGIFactory3_Wrapper(object)
+    {
+        std::lock_guard<std::mutex> lock_guard(active_wrappers_lock_);
+        active_wrappers_[object] = this;
+
+        SetDestroyFunc([this]() {
+            std::lock_guard<std::mutex> lock_guard(active_wrappers_lock_);
+            active_wrappers_.erase(GetObject());
+        });
+    }
+
+    virtual HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void** ppvObject) override
+    {
+        // PROTOTYPE: When up casting, return the current wrapper.
+        if (IsEqualIID(IID_IDXGIFactory4, riid))
+        {
+            AddRef();
+            (*ppvObject) = this;
+            return S_OK;
+        }
+        else
+        {
+            return IUnknown_Wrapper::QueryInterface(riid, ppvObject);
+        }
+    }
+
+    virtual HRESULT STDMETHODCALLTYPE EnumAdapterByLuid(LUID AdapterLuid, REFIID riid, void** ppvAdapter)
+    {
+        return GetObjectAs<IDXGIFactory4>()->EnumAdapterByLuid(AdapterLuid, riid, ppvAdapter);
+    }
+
+    virtual HRESULT STDMETHODCALLTYPE EnumWarpAdapter(REFIID riid, void** ppvAdapter)
+    {
+        return GetObjectAs<IDXGIFactory4>()->EnumWarpAdapter(riid, ppvAdapter);
+    }
+
+    static IDXGIFactory4_Wrapper* GetWrapper(IDXGIFactory4* object)
+    {
+        if (object != nullptr)
+        {
+            std::lock_guard<std::mutex> lock_guard(active_wrappers_lock_);
+            auto                        entry = active_wrappers_.find(object);
+
+            if (entry != active_wrappers_.end())
+            {
+                return entry->second;
+            }
+        }
+
+        return nullptr;
+    }
+
+  private:
+    static std::mutex                                        active_wrappers_lock_;
+    static std::unordered_map<void*, IDXGIFactory4_Wrapper*> active_wrappers_;
+};
+
+std::mutex                                        IDXGIFactory4_Wrapper::active_wrappers_lock_;
+std::unordered_map<void*, IDXGIFactory4_Wrapper*> IDXGIFactory4_Wrapper::active_wrappers_;
+
 void GetOrCreateWrappedObject(REFIID riid, void** object)
 {
     if (IsEqualIID(riid, IID_ID3D12Device))
@@ -815,30 +1133,41 @@ void GetOrCreateWrappedObject(REFIID riid, void** object)
     {
         GetOrCreateWrappedObject<ID3D12CommandQueue_Wrapper>(reinterpret_cast<ID3D12CommandQueue**>(object));
     }
+    else if (IsEqualIID(riid, IID_IDXGIFactory4))
+    {
+        GetOrCreateWrappedObject<IDXGIFactory4_Wrapper>(reinterpret_cast<IDXGIFactory4**>(object));
+    }
     else
     {
         // Raise/report error
     }
 }
 
-// The real d3d12.dll
-const char kD3D12DllName[] = "d3d12_ms.dll";
-HMODULE    d3d12_library   = nullptr;
-
 // The real D3D12 functions retrieved from the real d3d12.dll
-typedef HRESULT(WINAPI* PFN_D3D12CreateDevice)(IUnknown*         pAdapter,
-                                               D3D_FEATURE_LEVEL MinimumFeatureLevel,
-                                               REFIID            riid,
-                                               void**            ppDevice);
-typedef HRESULT(WINAPI* PFN_D3D12GetDebugInterface)(REFIID riid, void** ppvDebug);
+typedef HRESULT(WINAPI* PFN_D3D12CreateDevice)(IUnknown*, D3D_FEATURE_LEVEL, REFIID, void**);
+typedef HRESULT(WINAPI* PFN_D3D12GetDebugInterface)(REFIID, void**);
 
-PFN_D3D12CreateDevice      create_device_func       = nullptr;
-PFN_D3D12GetDebugInterface get_debug_interface_func = nullptr;
+// The real DXGI functions retrieved from the real dxgi.dll
+typedef HRESULT(WINAPI* PFN_CreateDXGIFactory2)(UINT, REFIID, void**);
 
-EXTERN_C HRESULT WINAPI D3D12CreateDevice(IUnknown*         pAdapter,
-                                          D3D_FEATURE_LEVEL MinimumFeatureLevel,
-                                          REFIID            riid, // Expected: ID3D12Device
-                                          void**            ppDevice)
+namespace gfxr
+{
+const char kD3D12DllName[] = "d3d12_ms.dll";
+const char kDxgiDllName[]  = "dxgi_ms.dll";
+
+HMODULE d3d12_library = nullptr;
+HMODULE dxgi_library  = nullptr;
+
+PFN_D3D12CreateDevice      create_device_func        = nullptr;
+PFN_D3D12GetDebugInterface get_debug_interface_func  = nullptr;
+PFN_CreateDXGIFactory2     create_dxgi_factory2_func = nullptr;
+
+Dx12DispatchTable* dispatch_table = nullptr;
+
+HRESULT D3D12CreateDevice(IUnknown*         pAdapter,
+                          D3D_FEATURE_LEVEL MinimumFeatureLevel,
+                          REFIID            riid, // Expected: ID3D12Device
+                          void**            ppDevice)
 {
     if (create_device_func != nullptr)
     {
@@ -862,7 +1191,7 @@ EXTERN_C HRESULT WINAPI D3D12CreateDevice(IUnknown*         pAdapter,
     return E_FAIL;
 }
 
-EXTERN_C HRESULT WINAPI D3D12GetDebugInterface(REFIID riid, void** ppvDebug)
+HRESULT D3D12GetDebugInterface(REFIID riid, void** ppvDebug)
 {
     if (get_debug_interface_func != nullptr)
     {
@@ -872,6 +1201,65 @@ EXTERN_C HRESULT WINAPI D3D12GetDebugInterface(REFIID riid, void** ppvDebug)
     return E_FAIL;
 }
 
+HRESULT CreateDXGIFactory2(UINT Flags, REFIID riid, void** ppFactory)
+{
+    if (create_dxgi_factory2_func != nullptr)
+    {
+        auto result = create_dxgi_factory2_func(Flags, riid, ppFactory);
+        if (SUCCEEDED(result) && ppFactory != nullptr)
+        {
+            GetOrCreateWrappedObject(riid, ppFactory);
+        }
+
+        return result;
+    }
+
+    return E_FAIL;
+}
+
+void Load()
+{
+    d3d12_library = LoadLibrary(kD3D12DllName);
+    if (d3d12_library != nullptr)
+    {
+        create_device_func =
+            reinterpret_cast<PFN_D3D12CreateDevice>(GetProcAddress(d3d12_library, "D3D12CreateDevice"));
+        get_debug_interface_func =
+            reinterpret_cast<PFN_D3D12GetDebugInterface>(GetProcAddress(d3d12_library, "D3D12GetDebugInterface"));
+    }
+
+    dxgi_library = LoadLibrary(kDxgiDllName);
+    if (dxgi_library != nullptr)
+    {
+        create_dxgi_factory2_func =
+            reinterpret_cast<PFN_CreateDXGIFactory2>(GetProcAddress(dxgi_library, "CreateDXGIFactory2"));
+    }
+
+    dispatch_table =
+        new Dx12DispatchTable{ gfxr::D3D12CreateDevice, gfxr::D3D12GetDebugInterface, gfxr::CreateDXGIFactory2 };
+}
+
+void Destroy()
+{
+    if (d3d12_library != nullptr)
+    {
+        FreeLibrary(d3d12_library);
+    }
+
+    if (dxgi_library != nullptr)
+    {
+        FreeLibrary(dxgi_library);
+    }
+
+    delete dispatch_table;
+}
+} // namespace gfxr
+
+EXTERN_C Dx12DispatchTable* WINAPI GetDx12DispatchTable()
+{
+    return gfxr::dispatch_table;
+}
+
 BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
 {
     BOOL success = TRUE;
@@ -879,21 +1267,17 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
     switch (fdwReason)
     {
         case DLL_PROCESS_ATTACH:
-            d3d12_library = LoadLibrary(kD3D12DllName);
-            if (d3d12_library != nullptr)
+            if (gfxr::dispatch_table == nullptr)
             {
-                create_device_func =
-                    reinterpret_cast<PFN_D3D12CreateDevice>(GetProcAddress(d3d12_library, "D3D12CreateDevice"));
-                get_debug_interface_func = reinterpret_cast<PFN_D3D12GetDebugInterface>(
-                    GetProcAddress(d3d12_library, "D3D12GetDebugInterface"));
+                gfxr::Load();
             }
             break;
         case DLL_PROCESS_DETACH:
             if (lpvReserved == nullptr)
             {
-                if (d3d12_library != nullptr)
+                if (gfxr::dispatch_table != nullptr)
                 {
-                    FreeLibrary(d3d12_library);
+                    gfxr::Destroy();
                 }
             }
             break;

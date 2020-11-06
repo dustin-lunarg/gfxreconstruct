@@ -1,0 +1,3 @@
+LIBRARY dx12_capture
+EXPORTS
+GetDx12DispatchTable
