@@ -30,6 +30,7 @@
 #include <mutex>
 #include <Unknwn.h>
 #include <unordered_map>
+#include <vector>
 #include <windows.h>
 
 #undef GetObject
@@ -197,16 +198,7 @@ class ID3D12Device_Wrapper : public ID3D12Object_Wrapper
     typedef ID3D12Device WrappedType;
 
   public:
-    ID3D12Device_Wrapper(ID3D12Device* object) : ID3D12Object_Wrapper(object)
-    {
-        std::lock_guard<std::mutex> lock_guard(active_wrappers_lock_);
-        active_wrappers_[object] = this;
-
-        SetDestroyFunc([this]() {
-            std::lock_guard<std::mutex> lock_guard(active_wrappers_lock_);
-            active_wrappers_.erase(GetObject());
-        });
-    }
+    ID3D12Device_Wrapper(ID3D12Device* object) : ID3D12Object_Wrapper(object) {}
 
     virtual HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void** ppvObject) override
     {
@@ -520,30 +512,7 @@ class ID3D12Device_Wrapper : public ID3D12Object_Wrapper
     }
 
     virtual LUID STDMETHODCALLTYPE GetAdapterLuid(void) { return GetObjectAs<ID3D12Device>()->GetAdapterLuid(); }
-
-    static ID3D12Device_Wrapper* GetWrapper(ID3D12Device* object)
-    {
-        if (object != nullptr)
-        {
-            std::lock_guard<std::mutex> lock_guard(active_wrappers_lock_);
-            auto                        entry = active_wrappers_.find(object);
-
-            if (entry != active_wrappers_.end())
-            {
-                return entry->second;
-            }
-        }
-
-        return nullptr;
-    }
-
-  private:
-    static std::mutex                                       active_wrappers_lock_;
-    static std::unordered_map<void*, ID3D12Device_Wrapper*> active_wrappers_;
 };
-
-std::mutex                                       ID3D12Device_Wrapper::active_wrappers_lock_;
-std::unordered_map<void*, ID3D12Device_Wrapper*> ID3D12Device_Wrapper::active_wrappers_;
 
 class ID3D12DeviceChild_Wrapper : public ID3D12Object_Wrapper
 {
@@ -806,6 +775,89 @@ class ID3D12CommandQueue_Wrapper : public ID3D12Pageable_Wrapper
 
 std::mutex                                             ID3D12CommandQueue_Wrapper::active_wrappers_lock_;
 std::unordered_map<void*, ID3D12CommandQueue_Wrapper*> ID3D12CommandQueue_Wrapper::active_wrappers_;
+
+class ID3D12Device1_Wrapper : public ID3D12Device_Wrapper
+{
+  public:
+    typedef ID3D12Device1 WrappedType;
+
+  public:
+    ID3D12Device1_Wrapper(ID3D12Device1* object) : ID3D12Device_Wrapper(object)
+    {
+        std::lock_guard<std::mutex> lock_guard(active_wrappers_lock_);
+        active_wrappers_[object] = this;
+
+        SetDestroyFunc([this]() {
+            std::lock_guard<std::mutex> lock_guard(active_wrappers_lock_);
+            active_wrappers_.erase(GetObject());
+        });
+    }
+
+    virtual HRESULT STDMETHODCALLTYPE CreatePipelineLibrary(const void* pLibraryBlob,
+                                                            SIZE_T      BlobLength,
+                                                            REFIID      riid,
+                                                            void**      ppPipelineLibrary)
+    {
+        return GetObjectAs<ID3D12Device1>()->CreatePipelineLibrary(pLibraryBlob, BlobLength, riid, ppPipelineLibrary);
+    }
+
+    virtual HRESULT STDMETHODCALLTYPE SetEventOnMultipleFenceCompletion(ID3D12Fence* const*             ppFences,
+                                                                        const UINT64*                   pFenceValues,
+                                                                        UINT                            NumFences,
+                                                                        D3D12_MULTIPLE_FENCE_WAIT_FLAGS Flags,
+                                                                        HANDLE                          hEvent)
+    {
+        // PROTOTYPE: Unwrap an array of objects.  The unwrapping could be in a templated utility function.
+        static thread_local std::vector<ID3D12Fence*> unwrapped_objects;
+
+        // Clear data from previous use.
+        unwrapped_objects.clear();
+
+        // Grow when necessary.
+        if (unwrapped_objects.size() < NumFences)
+        {
+            unwrapped_objects.resize(NumFences);
+        }
+
+        for (UINT i = 0; i < NumFences; ++i)
+        {
+            unwrapped_objects[i] = UnwrapObject<ID3D12Fence_Wrapper>(ppFences[i]);
+        }
+
+        return GetObjectAs<ID3D12Device1>()->SetEventOnMultipleFenceCompletion(
+            unwrapped_objects.data(), pFenceValues, NumFences, Flags, hEvent);
+    }
+
+    virtual HRESULT STDMETHODCALLTYPE SetResidencyPriority(UINT                            NumObjects,
+                                                           ID3D12Pageable* const*          ppObjects,
+                                                           const D3D12_RESIDENCY_PRIORITY* pPriorities)
+    {
+        return GetObjectAs<ID3D12Device1>()->SetResidencyPriority(NumObjects, ppObjects, pPriorities);
+    }
+
+    static ID3D12Device_Wrapper* GetWrapper(ID3D12Device* object)
+    {
+        if (object != nullptr)
+        {
+            std::lock_guard<std::mutex> lock_guard(active_wrappers_lock_);
+            auto                        entry = active_wrappers_.find(object);
+
+            if (entry != active_wrappers_.end())
+            {
+                return entry->second;
+            }
+        }
+
+        return nullptr;
+    }
+
+  private:
+    static std::mutex                                        active_wrappers_lock_;
+    static std::unordered_map<void*, ID3D12Device1_Wrapper*> active_wrappers_;
+};
+
+std::mutex                                        ID3D12Device1_Wrapper::active_wrappers_lock_;
+std::unordered_map<void*, ID3D12Device1_Wrapper*> ID3D12Device1_Wrapper::active_wrappers_;
 
 class IDXGIObject_Wrapper : public IUnknown_Wrapper
 {
@@ -1122,9 +1174,13 @@ std::unordered_map<void*, IDXGIFactory4_Wrapper*> IDXGIFactory4_Wrapper::active_
 
 void GetOrCreateWrappedObject(REFIID riid, void** object)
 {
-    if (IsEqualIID(riid, IID_ID3D12Device))
+    if (IsEqualIID(riid, IID_ID3D12Device) || IsEqualIID(riid, IID_ID3D12Device1))
     {
-        GetOrCreateWrappedObject<ID3D12Device_Wrapper>(reinterpret_cast<ID3D12Device**>(object));
+        // PROTOTYPE: Create a wrapper for the most recent class version.  When creating a wrapper for a
+        // class version that is different than the version specified by riid, QueryInterface could be used to
+        // confirm that the pointers retrieved for both class versions match.  If there is a mismatch,
+        // promotion to the latest version would be skipped.
+        GetOrCreateWrappedObject<ID3D12Device1_Wrapper>(reinterpret_cast<ID3D12Device1**>(object));
     }
     else if (IsEqualIID(riid, IID_ID3D12Fence))
     {
@@ -1134,8 +1190,14 @@ void GetOrCreateWrappedObject(REFIID riid, void** object)
     {
         GetOrCreateWrappedObject<ID3D12CommandQueue_Wrapper>(reinterpret_cast<ID3D12CommandQueue**>(object));
     }
-    else if (IsEqualIID(riid, IID_IDXGIFactory4))
+    if (IsEqualIID(riid, IID_IDXGIFactory4) || IsEqualIID(riid, IID_IDXGIFactory3) ||
+        IsEqualIID(riid, IID_IDXGIFactory2) || IsEqualIID(riid, IID_IDXGIFactory1) ||
+        IsEqualIID(riid, IID_IDXGIFactory))
     {
+        // PROTOTYPE: Create a wrapper for the most recent class version.  When creating a wrapper for a
+        // class version that is different than the version specified by riid, QueryInterface could be used to
+        // confirm that the pointers retrieved for both class versions match.  If there is a mismatch,
+        // promotion to the latest version would be skipped.
         GetOrCreateWrappedObject<IDXGIFactory4_Wrapper>(reinterpret_cast<IDXGIFactory4**>(object));
     }
     else
@@ -1176,9 +1238,13 @@ HRESULT D3D12CreateDevice(IUnknown*         pAdapter,
         if (SUCCEEDED(result) && ppDevice != nullptr)
         {
             // PROTOTYPE: Check for the expected type before falling back on the generic IID based function.
-            if (IsEqualIID(riid, IID_ID3D12Device))
+            if (IsEqualIID(riid, IID_ID3D12Device) || IsEqualIID(riid, IID_ID3D12Device1))
             {
-                GetOrCreateWrappedObject<ID3D12Device_Wrapper>(reinterpret_cast<ID3D12Device**>(ppDevice));
+                // PROTOTYPE: Create a wrapper for the most recent class version.  When creating a wrapper for a
+                // class version that is different than the version specified by riid, QueryInterface could be used to
+                // confirm that the pointers retrieved for both class versions match.  If there is a mismatch,
+                // promotion to the latest version would be skipped.
+                GetOrCreateWrappedObject<ID3D12Device1_Wrapper>(reinterpret_cast<ID3D12Device1**>(ppDevice));
             }
             else
             {
@@ -1209,7 +1275,21 @@ HRESULT CreateDXGIFactory2(UINT Flags, REFIID riid, void** ppFactory)
         auto result = create_dxgi_factory2_func(Flags, riid, ppFactory);
         if (SUCCEEDED(result) && ppFactory != nullptr)
         {
-            GetOrCreateWrappedObject(riid, ppFactory);
+            // PROTOTYPE: Check for the expected type before falling back on the generic IID based function.
+            if (IsEqualIID(riid, IID_IDXGIFactory4) || IsEqualIID(riid, IID_IDXGIFactory3) ||
+                IsEqualIID(riid, IID_IDXGIFactory2) || IsEqualIID(riid, IID_IDXGIFactory1) ||
+                IsEqualIID(riid, IID_IDXGIFactory))
+            {
+                // PROTOTYPE: Create a wrapper for the most recent class version.  When creating a wrapper for a
+                // class version that is different than the version specified by riid, QueryInterface could be used to
+                // confirm that the pointers retrieved for both class versions match.  If there is a mismatch,
+                // promotion to the latest version would be skipped.
+                GetOrCreateWrappedObject<IDXGIFactory4_Wrapper>(reinterpret_cast<IDXGIFactory4**>(ppFactory));
+            }
+            else
+            {
+                GetOrCreateWrappedObject(riid, ppFactory);
+            }
         }
 
         return result;

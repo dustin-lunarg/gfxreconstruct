@@ -1,6 +1,6 @@
 LIBRARY dxgi
 EXPORTS
-ApplyCompatResolutionQuirking=dxg_ms.ApplyCompatResolutionQuirking @1
+ApplyCompatResolutionQuirking=dxgi_ms.ApplyCompatResolutionQuirking @1
 CompatString=dxgi_ms.CompatString @2
 CompatValue=dxgi_ms.CompatValue @3
 CreateDXGIFactory=dxgi_ms.CreateDXGIFactory @10
