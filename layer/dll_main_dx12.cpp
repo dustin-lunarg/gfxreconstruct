@@ -1227,6 +1227,11 @@ PFN_CreateDXGIFactory2     create_dxgi_factory2_func = nullptr;
 
 Dx12DispatchTable* dispatch_table = nullptr;
 
+// PROTOTYPE: Scope counter for API call depth.  A scope count of 1 indicates the application has called the function
+// directly.  A scope count greater than 1 indicates that the function was called by another function in the run time.
+// Only wrap objects for functions called by the application, to prevent wrappers from being used in the run time.
+thread_local uint32_t call_scope = 0;
+
 HRESULT D3D12CreateDevice(IUnknown*         pAdapter,
                           D3D_FEATURE_LEVEL MinimumFeatureLevel,
                           REFIID            riid, // Expected: ID3D12Device
@@ -1234,8 +1239,13 @@ HRESULT D3D12CreateDevice(IUnknown*         pAdapter,
 {
     if (create_device_func != nullptr)
     {
+        ++call_scope;
+
         auto result = create_device_func(pAdapter, MinimumFeatureLevel, riid, ppDevice);
-        if (SUCCEEDED(result) && ppDevice != nullptr)
+
+        // PROTOTYPE: Only wrap objects for functions called by the application, when scope_count is 1, to prevent
+        // wrappers from being used in the run time.
+        if (SUCCEEDED(result) && ppDevice != nullptr && (call_scope == 1))
         {
             // PROTOTYPE: Check for the expected type before falling back on the generic IID based function.
             if (IsEqualIID(riid, IID_ID3D12Device) || IsEqualIID(riid, IID_ID3D12Device1))
@@ -1252,6 +1262,8 @@ HRESULT D3D12CreateDevice(IUnknown*         pAdapter,
             }
         }
 
+        --call_scope;
+
         return result;
     }
 
@@ -1262,7 +1274,13 @@ HRESULT D3D12GetDebugInterface(REFIID riid, void** ppvDebug)
 {
     if (get_debug_interface_func != nullptr)
     {
-        return get_debug_interface_func(riid, ppvDebug);
+        ++call_scope;
+
+        auto result = get_debug_interface_func(riid, ppvDebug);
+
+        --call_scope;
+
+        return result;
     }
 
     return E_FAIL;
@@ -1272,8 +1290,13 @@ HRESULT CreateDXGIFactory2(UINT Flags, REFIID riid, void** ppFactory)
 {
     if (create_dxgi_factory2_func != nullptr)
     {
+        ++call_scope;
+
         auto result = create_dxgi_factory2_func(Flags, riid, ppFactory);
-        if (SUCCEEDED(result) && ppFactory != nullptr)
+
+        // PROTOTYPE: Only wrap objects for functions called by the application, when scope_count is 1, to prevent
+        // wrappers from being used in the run time.
+        if (SUCCEEDED(result) && ppFactory != nullptr && (call_scope == 1))
         {
             // PROTOTYPE: Check for the expected type before falling back on the generic IID based function.
             if (IsEqualIID(riid, IID_IDXGIFactory4) || IsEqualIID(riid, IID_IDXGIFactory3) ||
@@ -1291,6 +1314,8 @@ HRESULT CreateDXGIFactory2(UINT Flags, REFIID riid, void** ppFactory)
                 GetOrCreateWrappedObject(riid, ppFactory);
             }
         }
+
+        --call_scope;
 
         return result;
     }
