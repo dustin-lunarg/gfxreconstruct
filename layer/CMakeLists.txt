@@ -20,6 +20,26 @@
 # Description: CMake script for framework util target
 ###############################################################################
 
+if (WIN32)
+add_library(d3d12 SHARED "")
+
+target_sources(d3d12
+               PRIVATE
+                   ${CMAKE_CURRENT_LIST_DIR}/dll_main_dx12.cpp
+                   ${CMAKE_CURRENT_LIST_DIR}/d3d12.def
+              )
+
+target_include_directories(d3d12
+                           PUBLIC
+                               ${CMAKE_BINARY_DIR}
+                               ${CMAKE_SOURCE_DIR})
+
+target_link_libraries(d3d12 platform_specific ${CMAKE_CURRENT_LIST_DIR}/d3d12_ms.lib)
+
+common_build_directives(d3d12)
+endif()
+
+
 add_library(VkLayer_gfxreconstruct SHARED "")
 
 target_sources(VkLayer_gfxreconstruct

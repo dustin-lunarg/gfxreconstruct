@@ -946,11 +946,8 @@ typedef VkResult(VKAPI_PTR* PFN_vkCreateStreamDescriptorSurfaceGGP)(
 
 extern "C"
 {
-    static VKAPI_ATTR VkResult VKAPI_CALL
-                               vkCreateStreamDescriptorSurfaceGGP(VkInstance                                    instance,
-                                                                  const VkStreamDescriptorSurfaceCreateInfoGGP* pCreateInfo,
-                                                                  const VkAllocationCallbacks*                  pAllocator,
-                                                                  VkSurfaceKHR*                                 pSurface)
+    static VKAPI_ATTR VkResult VKAPI_CALL vkCreateStreamDescriptorSurfaceGGP(
+        VkInstance, const VkStreamDescriptorSurfaceCreateInfoGGP*, const VkAllocationCallbacks*, VkSurfaceKHR*)
     {
         GFXRECON_LOG_ERROR("Calling unsupported platform extension function vkCreateStreamDescriptorSurfaceGGP");
         return VK_ERROR_EXTENSION_NOT_PRESENT;
