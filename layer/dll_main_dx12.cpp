@@ -98,10 +98,27 @@ class IUnknown_Wrapper : public IUnknown
     {
         auto result = object_->QueryInterface(riid, ppvObject);
 
-        if (SUCCEEDED(result))
+        if (SUCCEEDED(result) && (ppvObject != nullptr))
         {
-            // PROTOTYPE: Retrieve an existing wrapper or create a new wrapper for the retrieved object.
-            GetOrCreateWrappedObject(riid, ppvObject);
+            // PROTOTYPE: If the retrieved object matches the wrapped object, return the current wrapper.  There is an
+            // issue here when the retrieved object is a version of a type that is not wrapped.  For example, if the
+            // query was for IDXGIFactory6, but the latest factory version supported by the wrappers is IDXGIFactory4,
+            // an IDXGIFactory4_Wrapper type will be returned, leading to failures when the caller attempts to use
+            // IDXGIFactory6 methods.  There will also be an issue here with multiple inheritance, if the same pointer
+            // is returned for an IID associated with a type from a different inheritance hierarchy.
+            if (*ppvObject == object_)
+            {
+                // PROTOTYPE: Release the additional ref count added to the object by QueryInterface and increment the
+                // ref count for the wrapper being returned.
+                auto count = reinterpret_cast<IUnknown*>(*ppvObject)->Release();
+                AddRef();
+                (*ppvObject) = this;
+            }
+            else
+            {
+                // PROTOTYPE: Retrieve an existing wrapper or create a new wrapper for the retrieved object.
+                GetOrCreateWrappedObject(riid, ppvObject);
+            }
         }
 
         return result;
@@ -159,21 +176,6 @@ class ID3D12Object_Wrapper : public IUnknown_Wrapper
   public:
     ID3D12Object_Wrapper(ID3D12Object* object) : IUnknown_Wrapper(object) {}
 
-    virtual HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void** ppvObject) override
-    {
-        // PROTOTYPE: When up casting, return the current wrapper.
-        if (IsEqualIID(IID_ID3D12Object, riid))
-        {
-            AddRef();
-            (*ppvObject) = this;
-            return S_OK;
-        }
-        else
-        {
-            return IUnknown_Wrapper::QueryInterface(riid, ppvObject);
-        }
-    }
-
     virtual HRESULT STDMETHODCALLTYPE GetPrivateData(REFGUID guid, UINT* pDataSize, void* pData)
     {
         return GetObjectAs<ID3D12Object>()->GetPrivateData(guid, pDataSize, pData);
@@ -199,21 +201,6 @@ class ID3D12Device_Wrapper : public ID3D12Object_Wrapper
 
   public:
     ID3D12Device_Wrapper(ID3D12Device* object) : ID3D12Object_Wrapper(object) {}
-
-    virtual HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void** ppvObject) override
-    {
-        // PROTOTYPE: When up casting, return the current wrapper.
-        if (IsEqualIID(IID_ID3D12Device, riid))
-        {
-            AddRef();
-            (*ppvObject) = this;
-            return S_OK;
-        }
-        else
-        {
-            return ID3D12Object_Wrapper::QueryInterface(riid, ppvObject);
-        }
-    }
 
     virtual UINT STDMETHODCALLTYPE GetNodeCount(void) { return GetObjectAs<ID3D12Device>()->GetNodeCount(); }
 
@@ -522,21 +509,6 @@ class ID3D12DeviceChild_Wrapper : public ID3D12Object_Wrapper
   public:
     ID3D12DeviceChild_Wrapper(ID3D12DeviceChild* object) : ID3D12Object_Wrapper(object) {}
 
-    virtual HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void** ppvObject) override
-    {
-        // PROTOTYPE: When up casting, return the current wrapper.
-        if (IsEqualIID(IID_ID3D12DeviceChild, riid))
-        {
-            AddRef();
-            (*ppvObject) = this;
-            return S_OK;
-        }
-        else
-        {
-            return IUnknown_Wrapper::QueryInterface(riid, ppvObject);
-        }
-    }
-
     virtual HRESULT STDMETHODCALLTYPE GetDevice(REFIID riid, void** ppvDevice)
     {
         // PROTOTYPE: Example of wrapping an object at retrieval.
@@ -558,21 +530,6 @@ class ID3D12Pageable_Wrapper : public ID3D12DeviceChild_Wrapper
 
   public:
     ID3D12Pageable_Wrapper(ID3D12Pageable* object) : ID3D12DeviceChild_Wrapper(object) {}
-
-    virtual HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void** ppvObject) override
-    {
-        // PROTOTYPE: When up casting, return the current wrapper.
-        if (IsEqualIID(IID_ID3D12Pageable, riid))
-        {
-            AddRef();
-            (*ppvObject) = this;
-            return S_OK;
-        }
-        else
-        {
-            return IUnknown_Wrapper::QueryInterface(riid, ppvObject);
-        }
-    }
 };
 
 class ID3D12Fence_Wrapper : public ID3D12Pageable_Wrapper
@@ -590,21 +547,6 @@ class ID3D12Fence_Wrapper : public ID3D12Pageable_Wrapper
             std::lock_guard<std::mutex> lock_guard(active_wrappers_lock_);
             active_wrappers_.erase(GetObject());
         });
-    }
-
-    virtual HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void** ppvObject) override
-    {
-        // PROTOTYPE: When up casting, return the current wrapper.
-        if (IsEqualIID(IID_ID3D12Fence, riid))
-        {
-            AddRef();
-            (*ppvObject) = this;
-            return S_OK;
-        }
-        else
-        {
-            return IUnknown_Wrapper::QueryInterface(riid, ppvObject);
-        }
     }
 
     virtual UINT64 STDMETHODCALLTYPE GetCompletedValue(void) { return GetObjectAs<ID3D12Fence>()->GetCompletedValue(); }
@@ -656,21 +598,6 @@ class ID3D12CommandQueue_Wrapper : public ID3D12Pageable_Wrapper
             std::lock_guard<std::mutex> lock_guard(active_wrappers_lock_);
             active_wrappers_.erase(GetObject());
         });
-    }
-
-    virtual HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void** ppvObject) override
-    {
-        // PROTOTYPE: When up casting, return the current wrapper.
-        if (IsEqualIID(IID_ID3D12CommandQueue, riid))
-        {
-            AddRef();
-            (*ppvObject) = this;
-            return S_OK;
-        }
-        else
-        {
-            return IUnknown_Wrapper::QueryInterface(riid, ppvObject);
-        }
     }
 
     virtual void STDMETHODCALLTYPE
@@ -867,21 +794,6 @@ class IDXGIObject_Wrapper : public IUnknown_Wrapper
   public:
     IDXGIObject_Wrapper(IDXGIObject* object) : IUnknown_Wrapper(object) {}
 
-    virtual HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void** ppvObject) override
-    {
-        // PROTOTYPE: When up casting, return the current wrapper.
-        if (IsEqualIID(IID_IDXGIObject, riid))
-        {
-            AddRef();
-            (*ppvObject) = this;
-            return S_OK;
-        }
-        else
-        {
-            return IUnknown_Wrapper::QueryInterface(riid, ppvObject);
-        }
-    }
-
     virtual HRESULT STDMETHODCALLTYPE SetPrivateData(REFGUID Name, UINT DataSize, const void* pData)
     {
         return GetObjectAs<IDXGIObject>()->SetPrivateData(Name, DataSize, pData);
@@ -910,21 +822,6 @@ class IDXGIFactory_Wrapper : public IDXGIObject_Wrapper
 
   public:
     IDXGIFactory_Wrapper(IDXGIFactory* object) : IDXGIObject_Wrapper(object) {}
-
-    virtual HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void** ppvObject) override
-    {
-        // PROTOTYPE: When up casting, return the current wrapper.
-        if (IsEqualIID(IID_IDXGIFactory, riid))
-        {
-            AddRef();
-            (*ppvObject) = this;
-            return S_OK;
-        }
-        else
-        {
-            return IUnknown_Wrapper::QueryInterface(riid, ppvObject);
-        }
-    }
 
     virtual HRESULT STDMETHODCALLTYPE EnumAdapters(UINT Adapter, IDXGIAdapter** ppAdapter)
     {
@@ -963,21 +860,6 @@ class IDXGIFactory1_Wrapper : public IDXGIFactory_Wrapper
   public:
     IDXGIFactory1_Wrapper(IDXGIFactory1* object) : IDXGIFactory_Wrapper(object) {}
 
-    virtual HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void** ppvObject) override
-    {
-        // PROTOTYPE: When up casting, return the current wrapper.
-        if (IsEqualIID(IID_IDXGIFactory1, riid))
-        {
-            AddRef();
-            (*ppvObject) = this;
-            return S_OK;
-        }
-        else
-        {
-            return IUnknown_Wrapper::QueryInterface(riid, ppvObject);
-        }
-    }
-
     virtual HRESULT STDMETHODCALLTYPE EnumAdapters1(UINT Adapter, IDXGIAdapter1** ppAdapter)
     {
         return GetObjectAs<IDXGIFactory1>()->EnumAdapters1(Adapter, ppAdapter);
@@ -993,21 +875,6 @@ class IDXGIFactory2_Wrapper : public IDXGIFactory1_Wrapper
 
   public:
     IDXGIFactory2_Wrapper(IDXGIFactory2* object) : IDXGIFactory1_Wrapper(object) {}
-
-    virtual HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void** ppvObject) override
-    {
-        // PROTOTYPE: When up casting, return the current wrapper.
-        if (IsEqualIID(IID_IDXGIFactory2, riid))
-        {
-            AddRef();
-            (*ppvObject) = this;
-            return S_OK;
-        }
-        else
-        {
-            return IUnknown_Wrapper::QueryInterface(riid, ppvObject);
-        }
-    }
 
     virtual BOOL STDMETHODCALLTYPE IsWindowedStereoEnabled(void)
     {
@@ -1087,21 +954,6 @@ class IDXGIFactory3_Wrapper : public IDXGIFactory2_Wrapper
 
   public:
     IDXGIFactory3_Wrapper(IDXGIFactory3* object) : IDXGIFactory2_Wrapper(object) {}
-
-    virtual HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void** ppvObject) override
-    {
-        // PROTOTYPE: When up casting, return the current wrapper.
-        if (IsEqualIID(IID_IDXGIFactory3, riid))
-        {
-            AddRef();
-            (*ppvObject) = this;
-            return S_OK;
-        }
-        else
-        {
-            return IUnknown_Wrapper::QueryInterface(riid, ppvObject);
-        }
-    }
 
     virtual UINT STDMETHODCALLTYPE GetCreationFlags(void) { return GetObjectAs<IDXGIFactory3>()->GetCreationFlags(); }
 };
