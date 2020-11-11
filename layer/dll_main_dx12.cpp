@@ -26,6 +26,8 @@
 #include <dxgi1_2.h>
 #include <dxgi1_3.h>
 #include <dxgi1_4.h>
+#include <dxgi1_5.h>
+#include <dxgi1_6.h>
 #include <functional>
 #include <mutex>
 #include <Unknwn.h>
@@ -964,31 +966,7 @@ class IDXGIFactory4_Wrapper : public IDXGIFactory3_Wrapper
     typedef IDXGIFactory4 WrappedType;
 
   public:
-    IDXGIFactory4_Wrapper(IDXGIFactory4* object) : IDXGIFactory3_Wrapper(object)
-    {
-        std::lock_guard<std::mutex> lock_guard(active_wrappers_lock_);
-        active_wrappers_[object] = this;
-
-        SetDestroyFunc([this]() {
-            std::lock_guard<std::mutex> lock_guard(active_wrappers_lock_);
-            active_wrappers_.erase(GetObject());
-        });
-    }
-
-    virtual HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void** ppvObject) override
-    {
-        // PROTOTYPE: When up casting, return the current wrapper.
-        if (IsEqualIID(IID_IDXGIFactory4, riid))
-        {
-            AddRef();
-            (*ppvObject) = this;
-            return S_OK;
-        }
-        else
-        {
-            return IUnknown_Wrapper::QueryInterface(riid, ppvObject);
-        }
-    }
+    IDXGIFactory4_Wrapper(IDXGIFactory4* object) : IDXGIFactory3_Wrapper(object) {}
 
     virtual HRESULT STDMETHODCALLTYPE EnumAdapterByLuid(LUID AdapterLuid, REFIID riid, void** ppvAdapter)
     {
@@ -999,8 +977,51 @@ class IDXGIFactory4_Wrapper : public IDXGIFactory3_Wrapper
     {
         return GetObjectAs<IDXGIFactory4>()->EnumWarpAdapter(riid, ppvAdapter);
     }
+};
 
-    static IDXGIFactory4_Wrapper* GetWrapper(IDXGIFactory4* object)
+class IDXGIFactory5_Wrapper : public IDXGIFactory4_Wrapper
+{
+  public:
+    typedef IDXGIFactory5 WrappedType;
+
+  public:
+    IDXGIFactory5_Wrapper(IDXGIFactory5* object) : IDXGIFactory4_Wrapper(object) {}
+
+    virtual HRESULT STDMETHODCALLTYPE CheckFeatureSupport(DXGI_FEATURE Feature,
+                                                          void*        pFeatureSupportData,
+                                                          UINT         FeatureSupportDataSize)
+    {
+        return GetObjectAs<WrappedType>()->CheckFeatureSupport(Feature, pFeatureSupportData, FeatureSupportDataSize);
+    }
+};
+
+class IDXGIFactory6_Wrapper : public IDXGIFactory5_Wrapper
+{
+  public:
+    typedef IDXGIFactory6 WrappedType;
+
+  public:
+    IDXGIFactory6_Wrapper(IDXGIFactory6* object) : IDXGIFactory5_Wrapper(object)
+    {
+        std::lock_guard<std::mutex> lock_guard(active_wrappers_lock_);
+        active_wrappers_[object] = this;
+
+        SetDestroyFunc([this]() {
+            std::lock_guard<std::mutex> lock_guard(active_wrappers_lock_);
+            active_wrappers_.erase(GetObject());
+        });
+    }
+
+  public:
+    virtual HRESULT STDMETHODCALLTYPE EnumAdapterByGpuPreference(UINT                Adapter,
+                                                                 DXGI_GPU_PREFERENCE GpuPreference,
+                                                                 REFIID              riid,
+                                                                 void**              ppvAdapter)
+    {
+        return GetObjectAs<WrappedType>()->EnumAdapterByGpuPreference(Adapter, GpuPreference, riid, ppvAdapter);
+    }
+
+    static IDXGIFactory6_Wrapper* GetWrapper(IDXGIFactory6* object)
     {
         if (object != nullptr)
         {
@@ -1018,11 +1039,11 @@ class IDXGIFactory4_Wrapper : public IDXGIFactory3_Wrapper
 
   private:
     static std::mutex                                        active_wrappers_lock_;
-    static std::unordered_map<void*, IDXGIFactory4_Wrapper*> active_wrappers_;
+    static std::unordered_map<void*, IDXGIFactory6_Wrapper*> active_wrappers_;
 };
 
-std::mutex                                        IDXGIFactory4_Wrapper::active_wrappers_lock_;
-std::unordered_map<void*, IDXGIFactory4_Wrapper*> IDXGIFactory4_Wrapper::active_wrappers_;
+std::mutex                                        IDXGIFactory6_Wrapper::active_wrappers_lock_;
+std::unordered_map<void*, IDXGIFactory6_Wrapper*> IDXGIFactory6_Wrapper::active_wrappers_;
 
 void GetOrCreateWrappedObject(REFIID riid, void** object)
 {
@@ -1042,7 +1063,8 @@ void GetOrCreateWrappedObject(REFIID riid, void** object)
     {
         GetOrCreateWrappedObject<ID3D12CommandQueue_Wrapper>(reinterpret_cast<ID3D12CommandQueue**>(object));
     }
-    if (IsEqualIID(riid, IID_IDXGIFactory4) || IsEqualIID(riid, IID_IDXGIFactory3) ||
+    if (IsEqualIID(riid, IID_IDXGIFactory6) || IsEqualIID(riid, IID_IDXGIFactory5) ||
+        IsEqualIID(riid, IID_IDXGIFactory4) || IsEqualIID(riid, IID_IDXGIFactory3) ||
         IsEqualIID(riid, IID_IDXGIFactory2) || IsEqualIID(riid, IID_IDXGIFactory1) ||
         IsEqualIID(riid, IID_IDXGIFactory))
     {
@@ -1050,7 +1072,7 @@ void GetOrCreateWrappedObject(REFIID riid, void** object)
         // class version that is different than the version specified by riid, QueryInterface could be used to
         // confirm that the pointers retrieved for both class versions match.  If there is a mismatch,
         // promotion to the latest version would be skipped.
-        GetOrCreateWrappedObject<IDXGIFactory4_Wrapper>(reinterpret_cast<IDXGIFactory4**>(object));
+        GetOrCreateWrappedObject<IDXGIFactory6_Wrapper>(reinterpret_cast<IDXGIFactory6**>(object));
     }
     else
     {
@@ -1151,7 +1173,8 @@ HRESULT CreateDXGIFactory2(UINT Flags, REFIID riid, void** ppFactory)
         if (SUCCEEDED(result) && ppFactory != nullptr && (call_scope == 1))
         {
             // PROTOTYPE: Check for the expected type before falling back on the generic IID based function.
-            if (IsEqualIID(riid, IID_IDXGIFactory4) || IsEqualIID(riid, IID_IDXGIFactory3) ||
+            if (IsEqualIID(riid, IID_IDXGIFactory6) || IsEqualIID(riid, IID_IDXGIFactory5) ||
+                IsEqualIID(riid, IID_IDXGIFactory4) || IsEqualIID(riid, IID_IDXGIFactory3) ||
                 IsEqualIID(riid, IID_IDXGIFactory2) || IsEqualIID(riid, IID_IDXGIFactory1) ||
                 IsEqualIID(riid, IID_IDXGIFactory))
             {
@@ -1159,7 +1182,7 @@ HRESULT CreateDXGIFactory2(UINT Flags, REFIID riid, void** ppFactory)
                 // class version that is different than the version specified by riid, QueryInterface could be used to
                 // confirm that the pointers retrieved for both class versions match.  If there is a mismatch,
                 // promotion to the latest version would be skipped.
-                GetOrCreateWrappedObject<IDXGIFactory4_Wrapper>(reinterpret_cast<IDXGIFactory4**>(ppFactory));
+                GetOrCreateWrappedObject<IDXGIFactory6_Wrapper>(reinterpret_cast<IDXGIFactory6**>(ppFactory));
             }
             else
             {
