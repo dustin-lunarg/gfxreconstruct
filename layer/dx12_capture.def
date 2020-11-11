@@ -1,3 +1,4 @@
 LIBRARY dx12_capture
 EXPORTS
-GetDx12DispatchTable
+InitializeDx12Implementation
+ReleaseDx12Implementation

@@ -25,7 +25,7 @@ if (WIN32)
 add_library(dx12_capture SHARED "")
 target_sources(dx12_capture PRIVATE ${CMAKE_CURRENT_LIST_DIR}/dx12_dispatch_table.h ${CMAKE_CURRENT_LIST_DIR}/dll_main_dx12.cpp ${CMAKE_CURRENT_LIST_DIR}/dx12_capture.def)
 target_include_directories(dx12_capture PUBLIC ${CMAKE_BINARY_DIR} ${CMAKE_SOURCE_DIR})
-target_link_libraries(dx12_capture platform_specific)
+target_link_libraries(dx12_capture gfxrecon_encode gfxrecon_format gfxrecon_util platform_specific)
 common_build_directives(dx12_capture)
 
 add_library(d3d12 SHARED "")

@@ -35,8 +35,11 @@ struct Dx12DispatchTable
     PFN_CreateDXGIFactory2     create_dxgi_factory2_func{ nullptr };
 };
 
-typedef Dx12DispatchTable*(WINAPI* PFN_GetDx12DispatchTable)();
+typedef Dx12DispatchTable*(WINAPI* PFN_InitializeDx12Implementation)();
+typedef void(WINAPI* PFN_ReleaseDx12Implementation)();
 
-EXTERN_C Dx12DispatchTable* WINAPI GetDx12DispatchTable();
+EXTERN_C Dx12DispatchTable* WINAPI InitializeDx12Implementation();
+
+EXTERN_C void WINAPI ReleaseDx12Implementation();
 
 #endif // DX12_DISPATCH_TABLE_H

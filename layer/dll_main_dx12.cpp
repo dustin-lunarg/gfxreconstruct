@@ -19,6 +19,13 @@
 
 #include "dx12_dispatch_table.h"
 
+#include "format/api_call_id.h"
+#include "encode/custom_encoder_commands.h"
+#include "encode/parameter_encoder.h"
+#include "encode/struct_pointer_encoder.h"
+#include "encode/trace_manager.h"
+#include "util/defines.h"
+
 #include <atomic>
 #include <cstdint>
 #include <d3d12.h>
@@ -87,6 +94,34 @@ void GetOrCreateWrappedObject(typename T::WrappedType** object)
 }
 
 void GetOrCreateWrappedObject(REFIID riid, void** object);
+
+// Forward declarations for encode function declarations.
+class ID3D12Device_Wrapper;
+class ID3D12CommandQueue_Wrapper;
+
+// Encoder function declarations.
+GFXRECON_BEGIN_NAMESPACE(gfxrecon)
+GFXRECON_BEGIN_NAMESPACE(encode)
+
+void Encode_D3D12CreateDevice(HRESULT           result,
+                              IUnknown*         pAdapter,
+                              D3D_FEATURE_LEVEL MinimumFeatureLevel,
+                              REFIID            riid, // Expected: ID3D12Device
+                              void**            ppDevice);
+
+void Encode_ID3D12Device_CreateCommandQueue(ID3D12Device_Wrapper*           wrapper,
+                                            HRESULT                         result,
+                                            const D3D12_COMMAND_QUEUE_DESC* pDesc,
+                                            REFIID                          riid,
+                                            void**                          ppCommandQueue);
+
+void Encode_ID3D12CommandQueue_Signal(ID3D12CommandQueue_Wrapper* wrapper,
+                                      HRESULT                     result,
+                                      ID3D12Fence*                pFence,
+                                      UINT64                      Value);
+
+GFXRECON_END_NAMESPACE(encode)
+GFXRECON_END_NAMESPACE(gfxrecon)
 
 class IUnknown_Wrapper : public IUnknown
 {
@@ -210,6 +245,10 @@ class ID3D12Device_Wrapper : public ID3D12Object_Wrapper
                                                          REFIID                          riid,
                                                          void**                          ppCommandQueue)
     {
+        // PROTOTYPE: Example fully instrumented capture function.
+        gfxrecon::encode::CustomEncoderPreCall<gfxrecon::format::ApiCallId::ApiCall_ID3D12Device_CreateCommandQueue>::
+            Dispatch(gfxrecon::encode::TraceManager::Get(), this, pDesc, riid, ppCommandQueue);
+
         // PROTOTYPE: Example of wrapping an object at creation.
         auto result = GetObjectAs<ID3D12Device>()->CreateCommandQueue(pDesc, riid, ppCommandQueue);
 
@@ -217,6 +256,11 @@ class ID3D12Device_Wrapper : public ID3D12Object_Wrapper
         {
             GetOrCreateWrappedObject(riid, ppCommandQueue);
         }
+
+        gfxrecon::encode::Encode_ID3D12Device_CreateCommandQueue(this, result, pDesc, riid, ppCommandQueue);
+
+        gfxrecon::encode::CustomEncoderPostCall<gfxrecon::format::ApiCallId::ApiCall_ID3D12Device_CreateCommandQueue>::
+            Dispatch(gfxrecon::encode::TraceManager::Get(), this, result, pDesc, riid, ppCommandQueue);
 
         return result;
     }
@@ -656,8 +700,19 @@ class ID3D12CommandQueue_Wrapper : public ID3D12Pageable_Wrapper
 
     virtual HRESULT STDMETHODCALLTYPE Signal(ID3D12Fence* pFence, UINT64 Value)
     {
+        // PROTOTYPE: Example fully instrumented capture function.
+        gfxrecon::encode::CustomEncoderPreCall<gfxrecon::format::ApiCallId::ApiCall_ID3D12CommandQueue_Signal>::
+            Dispatch(gfxrecon::encode::TraceManager::Get(), this, pFence, Value);
+
         // PROTOTYPE: Unwrap an object when it is used as a parameter.
-        return GetObjectAs<ID3D12CommandQueue>()->Signal(UnwrapObject<ID3D12Fence_Wrapper>(pFence), Value);
+        auto result = GetObjectAs<ID3D12CommandQueue>()->Signal(UnwrapObject<ID3D12Fence_Wrapper>(pFence), Value);
+
+        gfxrecon::encode::Encode_ID3D12CommandQueue_Signal(this, result, pFence, Value);
+
+        gfxrecon::encode::CustomEncoderPostCall<gfxrecon::format::ApiCallId::ApiCall_ID3D12CommandQueue_Signal>::
+            Dispatch(gfxrecon::encode::TraceManager::Get(), this, result, pFence, Value);
+
+        return result;
     }
 
     virtual HRESULT STDMETHODCALLTYPE Wait(ID3D12Fence* pFence, UINT64 Value)
@@ -1115,6 +1170,10 @@ HRESULT D3D12CreateDevice(IUnknown*         pAdapter,
     {
         ++call_scope;
 
+        // PROTOTYPE: Example function instrumented for capture.
+        gfxrecon::encode::CustomEncoderPreCall<gfxrecon::format::ApiCallId::ApiCall_D3D12CreateDevice>::Dispatch(
+            gfxrecon::encode::TraceManager::Get(), pAdapter, MinimumFeatureLevel, riid, ppDevice);
+
         auto result = create_device_func(pAdapter, MinimumFeatureLevel, riid, ppDevice);
 
         // PROTOTYPE: Only wrap objects for functions called by the application, when scope_count is 1, to prevent
@@ -1135,6 +1194,11 @@ HRESULT D3D12CreateDevice(IUnknown*         pAdapter,
                 GetOrCreateWrappedObject(riid, ppDevice);
             }
         }
+
+        gfxrecon::encode::Encode_D3D12CreateDevice(result, pAdapter, MinimumFeatureLevel, riid, ppDevice);
+
+        gfxrecon::encode::CustomEncoderPostCall<gfxrecon::format::ApiCallId::ApiCall_D3D12CreateDevice>::Dispatch(
+            gfxrecon::encode::TraceManager::Get(), result, pAdapter, MinimumFeatureLevel, riid, ppDevice);
 
         --call_scope;
 
@@ -1236,9 +1300,18 @@ void Destroy()
 }
 } // namespace gfxr
 
-EXTERN_C Dx12DispatchTable* WINAPI GetDx12DispatchTable()
+EXTERN_C Dx12DispatchTable* WINAPI InitializeDx12Implementation()
 {
+    // This could potentially be called in thread attach.
+    gfxrecon::encode::TraceManager::CreateInstance();
+
     return gfxr::dispatch_table;
+}
+
+EXTERN_C void WINAPI ReleaseDx12Implementation()
+{
+    // This could potentially be called in thread detach.
+    gfxrecon::encode::TraceManager::DestroyInstance();
 }
 
 BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
@@ -1266,3 +1339,107 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
 
     return success;
 }
+
+//
+// Encoder implementations
+//
+GFXRECON_BEGIN_NAMESPACE(gfxrecon)
+GFXRECON_BEGIN_NAMESPACE(encode)
+
+// This would most likely be implemented in a custom ParameterEncoded::EncodeIID method.
+void EncodeIID(ParameterEncoder* encoder, REFIID riid)
+{
+    encoder->EncodeUInt32Value(riid.Data1);
+    encoder->EncodeUInt16Value(riid.Data2);
+    encoder->EncodeUInt16Value(riid.Data3);
+    encoder->EncodeUInt64Value(*(reinterpret_cast<const uint64_t*>(riid.Data4)));
+}
+
+// This would most likely be implemented in a custom ParameterEncoded::EncodeDxObjectPtr method.
+void EncodeDxObjectPtr(ParameterEncoder* encoder, void** object, bool omit_output_data)
+{
+    format::HandleId  device_id     = format::kNullHandleId;
+    format::HandleId* device_id_ptr = nullptr;
+    if ((object != nullptr) && (*object != nullptr))
+    {
+        device_id     = reinterpret_cast<const IUnknown_Wrapper*>(*object)->GetObjectId();
+        device_id_ptr = &device_id;
+    }
+    // The final version of the encoder would use the address of object as the address that is encoded for the
+    // pointer value.
+    encoder->EncodeHandleIdPtr(device_id_ptr, omit_output_data);
+}
+
+// This would be a generated struct encode function.
+void EncodeStruct(ParameterEncoder* encoder, const D3D12_COMMAND_QUEUE_DESC& value)
+{
+    encoder->EncodeEnumValue(value.Type);
+    encoder->EncodeInt32Value(value.Priority);
+    encoder->EncodeEnumValue(value.Flags);
+    encoder->EncodeUInt32Value(value.NodeMask);
+}
+
+// The following would be generated API function/method call encode functions.
+void Encode_D3D12CreateDevice(HRESULT           result,
+                              IUnknown*         pAdapter,
+                              D3D_FEATURE_LEVEL MinimumFeatureLevel,
+                              REFIID            riid, // Expected: ID3D12Device
+                              void**            ppDevice)
+{
+    bool omit_output_data = false;
+
+    if (FAILED(result))
+    {
+        omit_output_data = true;
+    }
+
+    auto encoder = TraceManager::Get()->BeginApiCallTrace(format::ApiCallId::ApiCall_D3D12CreateDevice);
+    if (encoder)
+    {
+        encoder->EncodeHandleIdValue(format::kNullHandleId); // Ignored for now as not supported for wrapping.
+        encoder->EncodeEnumValue(MinimumFeatureLevel);
+        EncodeIID(encoder, riid);
+        EncodeDxObjectPtr(encoder, ppDevice, omit_output_data);
+        encoder->EncodeInt32Value(result);
+        TraceManager::Get()->EndApiCallTrace(encoder);
+    }
+}
+
+void Encode_ID3D12Device_CreateCommandQueue(ID3D12Device_Wrapper*           wrapper,
+                                            HRESULT                         result,
+                                            const D3D12_COMMAND_QUEUE_DESC* pDesc,
+                                            REFIID                          riid,
+                                            void**                          ppCommandQueue)
+{
+    auto encoder = TraceManager::Get()->BeginMethodCallTrace(format::ApiCallId::ApiCall_ID3D12Device_CreateCommandQueue,
+                                                             wrapper->GetObjectId());
+    if (encoder)
+    {
+        EncodeStructPtr(encoder, pDesc);
+        EncodeIID(encoder, riid);
+        EncodeDxObjectPtr(encoder, ppCommandQueue, FAILED(result));
+        encoder->EncodeInt32Value(result);
+
+        TraceManager::Get()->EndMethodCallTrace(encoder);
+    }
+}
+
+void Encode_ID3D12CommandQueue_Signal(ID3D12CommandQueue_Wrapper* wrapper,
+                                      HRESULT                     result,
+                                      ID3D12Fence*                pFence,
+                                      UINT64                      Value)
+{
+    auto encoder = TraceManager::Get()->BeginMethodCallTrace(format::ApiCallId::ApiCall_ID3D12CommandQueue_Signal,
+                                                             wrapper->GetObjectId());
+    if (encoder)
+    {
+        encoder->EncodeHandleIdValue(reinterpret_cast<ID3D12Fence_Wrapper*>(wrapper)->GetObjectId());
+        encoder->EncodeUInt64Value(Value);
+        encoder->EncodeInt32Value(result);
+
+        TraceManager::Get()->EndMethodCallTrace(encoder);
+    }
+}
+
+GFXRECON_END_NAMESPACE(encode)
+GFXRECON_END_NAMESPACE(gfxrecon)

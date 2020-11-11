@@ -39,13 +39,20 @@ constexpr uint32_t MakeApiCallId(uint16_t family, uint16_t api_call)
 enum ApiFamilyId : uint16_t
 {
     ApiFamily_None   = 0,
-    ApiFamily_Vulkan = 1
+    ApiFamily_Vulkan = 1,
+    ApiFamily_Dxgi   = 2,
+    ApiFamily_D3D12  = 3
 };
 
 enum ApiCallId : uint32_t
 {
     // clang-format off
     ApiCall_Unknown                                                                               = 0x0000,
+
+    ApiCall_CreateDxgiDevice2               = MakeApiCallId(ApiFamily_Dxgi, 0x1000),
+    ApiCall_D3D12CreateDevice               = MakeApiCallId(ApiFamily_D3D12, 0x1000),
+    ApiCall_ID3D12Device_CreateCommandQueue = MakeApiCallId(ApiFamily_D3D12, 0x1001),
+    ApiCall_ID3D12CommandQueue_Signal       = MakeApiCallId(ApiFamily_D3D12, 0x1002),
 
     // Vulkan API
     ApiCall_vkCreateInstance                                                                      = MakeApiCallId(ApiFamily_Vulkan, 0x1000),

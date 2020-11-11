@@ -58,12 +58,12 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
                 dx12_capture_library = LoadLibrary(kDx12CaptureDllName);
                 if (dx12_capture_library != nullptr)
                 {
-                    auto get_table_func = reinterpret_cast<PFN_GetDx12DispatchTable>(
-                        GetProcAddress(dx12_capture_library, "GetDx12DispatchTable"));
+                    auto init_func = reinterpret_cast<PFN_InitializeDx12Implementation>(
+                        GetProcAddress(dx12_capture_library, "InitializeDx12Implementation"));
 
-                    if (get_table_func != nullptr)
+                    if (init_func != nullptr)
                     {
-                        dispatch_table = get_table_func();
+                        dispatch_table = init_func();
                     }
                 }
             }
@@ -73,6 +73,14 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
             {
                 if (dx12_capture_library != nullptr)
                 {
+                    auto release_func = reinterpret_cast<PFN_ReleaseDx12Implementation>(
+                        GetProcAddress(dx12_capture_library, "ReleaseDx12Implementation"));
+
+                    if (release_func != nullptr)
+                    {
+                        release_func();
+                    }
+
                     FreeLibrary(dx12_capture_library);
                 }
             }
