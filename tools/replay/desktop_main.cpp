@@ -15,6 +15,7 @@
 ** limitations under the License.
 */
 
+#include "dx12_decoder.h"
 #include "replay_settings.h"
 
 #include "application/application.h"
@@ -161,11 +162,13 @@ int main(int argc, const char** argv)
                 gfxrecon::decode::VulkanReplayConsumer         replay_consumer(
                     window_factory.get(), GetReplayOptions(arg_parser, filename, &tracked_object_info_table));
                 gfxrecon::decode::VulkanDecoder decoder;
+                gfxrecon::decode::Dx12Decoder   dx12_decoder;
 
                 replay_consumer.SetFatalErrorHandler([](const char* message) { throw std::runtime_error(message); });
 
                 decoder.AddConsumer(&replay_consumer);
                 file_processor.AddDecoder(&decoder);
+                file_processor.AddDecoder(&dx12_decoder);
                 application->SetPauseFrame(GetPauseFrame(arg_parser));
 
                 // Warn if the capture layer is active.

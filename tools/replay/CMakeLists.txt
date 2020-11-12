@@ -25,6 +25,8 @@ add_executable(gfxrecon-replay "")
 target_sources(gfxrecon-replay
                PRIVATE
                     ${CMAKE_CURRENT_LIST_DIR}/replay_settings.h
+                    ${CMAKE_CURRENT_LIST_DIR}/dx12_decoder.h
+                    ${CMAKE_CURRENT_LIST_DIR}/dx12_decoder.cpp
                     ${CMAKE_CURRENT_LIST_DIR}/desktop_main.cpp
 )
 
