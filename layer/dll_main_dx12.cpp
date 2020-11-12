@@ -83,7 +83,11 @@ void GetOrCreateWrappedObject(typename T::WrappedType** object)
             // PROTOTYPE: Release the additional ref count added to the object by QueryInterface, or whatever mechanism
             // retrieved the object, and increment the ref count for the wrapper being returned.
             auto count = (*object)->Release();
-            wrapper->AddRef();
+
+            // PROTOYPE: This represents that AddRef that was performed on the wrapped object by QueryInterface, or
+            // whatever mechanism retrieved the object, and should not be written to the capture file.
+            wrapper->AddRefInternal();
+
             (*object) = reinterpret_cast<T::WrappedType*>(wrapper);
         }
         else
@@ -96,6 +100,7 @@ void GetOrCreateWrappedObject(typename T::WrappedType** object)
 void GetOrCreateWrappedObject(REFIID riid, void** object);
 
 // Forward declarations for encode function declarations.
+class IUnknown_Wrapper;
 class ID3D12Device_Wrapper;
 class ID3D12CommandQueue_Wrapper;
 
@@ -120,6 +125,12 @@ void Encode_ID3D12CommandQueue_Signal(ID3D12CommandQueue_Wrapper* wrapper,
                                       ID3D12Fence*                pFence,
                                       UINT64                      Value);
 
+void Encode_IUnknown_QueryInterface(IUnknown_Wrapper* wrapper, HRESULT result, REFIID riid, void** ppvObject);
+
+void Encode_IUnknown_AddRef(IUnknown_Wrapper* wrapper, uint32_t result);
+
+void Encode_IUnknown_Release(IUnknown_Wrapper* wrapper, uint32_t result);
+
 GFXRECON_END_NAMESPACE(encode)
 GFXRECON_END_NAMESPACE(gfxrecon)
 
@@ -133,6 +144,10 @@ class IUnknown_Wrapper : public IUnknown
 
     virtual HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void** ppvObject) override
     {
+        // PROTOTYPE: Example fully instrumented capture function.
+        gfxrecon::encode::CustomEncoderPreCall<gfxrecon::format::ApiCallId::ApiCall_IUnknown_QueryInterface>::Dispatch(
+            gfxrecon::encode::TraceManager::Get(), this, riid, ppvObject);
+
         auto result = object_->QueryInterface(riid, ppvObject);
 
         if (SUCCEEDED(result) && (ppvObject != nullptr))
@@ -148,7 +163,11 @@ class IUnknown_Wrapper : public IUnknown
                 // PROTOTYPE: Release the additional ref count added to the object by QueryInterface and increment the
                 // ref count for the wrapper being returned.
                 auto count = reinterpret_cast<IUnknown*>(*ppvObject)->Release();
-                AddRef();
+
+                // PROTOYPE: This represents that AddRef that was performed on the wrapped object by QueryInterface, and
+                // should not be written to the capture file.
+                AddRefInternal();
+
                 (*ppvObject) = this;
             }
             else
@@ -158,18 +177,42 @@ class IUnknown_Wrapper : public IUnknown
             }
         }
 
+        gfxrecon::encode::Encode_IUnknown_QueryInterface(this, result, riid, ppvObject);
+
+        gfxrecon::encode::CustomEncoderPostCall<gfxrecon::format::ApiCallId::ApiCall_IUnknown_QueryInterface>::Dispatch(
+            gfxrecon::encode::TraceManager::Get(), this, result, riid, ppvObject);
+
         return result;
     }
 
     virtual ULONG STDMETHODCALLTYPE AddRef(void) override
     {
-        InterlockedIncrement(&ref_count_);
-        return ref_count_;
+        // PROTOTYPE: Example fully instrumented capture function.
+        gfxrecon::encode::CustomEncoderPreCall<gfxrecon::format::ApiCallId::ApiCall_IUnknown_AddRef>::
+            Dispatch(gfxrecon::encode::TraceManager::Get(), this);
+
+        auto count = AddRefInternal();
+
+        gfxrecon::encode::Encode_IUnknown_AddRef(this, count);
+
+        gfxrecon::encode::CustomEncoderPostCall<gfxrecon::format::ApiCallId::ApiCall_IUnknown_AddRef>::Dispatch(
+            gfxrecon::encode::TraceManager::Get(), this, count);
+
+        return count;
     }
 
     virtual ULONG STDMETHODCALLTYPE Release(void) override
     {
+        // PROTOTYPE: Example fully instrumented capture function.
+        gfxrecon::encode::CustomEncoderPreCall<gfxrecon::format::ApiCallId::ApiCall_IUnknown_Release>::Dispatch(
+            gfxrecon::encode::TraceManager::Get(), this);
+
         auto count = InterlockedDecrement(&ref_count_);
+
+        gfxrecon::encode::Encode_IUnknown_Release(this, count);
+
+        gfxrecon::encode::CustomEncoderPostCall<gfxrecon::format::ApiCallId::ApiCall_IUnknown_Release>::Dispatch(
+            gfxrecon::encode::TraceManager::Get(), this, count);
 
         if (count == 0)
         {
@@ -184,6 +227,12 @@ class IUnknown_Wrapper : public IUnknown
         }
 
         return count;
+    }
+
+    ULONG AddRefInternal()
+    {
+        InterlockedIncrement(&ref_count_);
+        return ref_count_;
     }
 
     void SetDestroyFunc(std::function<void()> destroy_func) { destroy_func_ = destroy_func; }
@@ -1436,6 +1485,44 @@ void Encode_ID3D12CommandQueue_Signal(ID3D12CommandQueue_Wrapper* wrapper,
         encoder->EncodeHandleIdValue(reinterpret_cast<ID3D12Fence_Wrapper*>(wrapper)->GetObjectId());
         encoder->EncodeUInt64Value(Value);
         encoder->EncodeInt32Value(result);
+
+        TraceManager::Get()->EndMethodCallTrace(encoder);
+    }
+}
+
+void Encode_IUnknown_QueryInterface(IUnknown_Wrapper* wrapper, HRESULT result, REFIID riid, void** ppvObject)
+{
+    auto encoder = TraceManager::Get()->BeginMethodCallTrace(format::ApiCallId::ApiCall_IUnknown_QueryInterface,
+                                                             wrapper->GetObjectId());
+    if (encoder)
+    {
+        EncodeIID(encoder, riid);
+        EncodeDxObjectPtr(encoder, ppvObject, FAILED(result));
+        encoder->EncodeInt32Value(result);
+
+        TraceManager::Get()->EndMethodCallTrace(encoder);
+    }
+}
+
+void Encode_IUnknown_AddRef(IUnknown_Wrapper* wrapper, uint32_t result)
+{
+    auto encoder =
+        TraceManager::Get()->BeginMethodCallTrace(format::ApiCallId::ApiCall_IUnknown_AddRef, wrapper->GetObjectId());
+    if (encoder)
+    {
+        encoder->EncodeUInt32Value(result);
+
+        TraceManager::Get()->EndMethodCallTrace(encoder);
+    }
+}
+
+void Encode_IUnknown_Release(IUnknown_Wrapper* wrapper, uint32_t result)
+{
+    auto encoder =
+        TraceManager::Get()->BeginMethodCallTrace(format::ApiCallId::ApiCall_IUnknown_Release, wrapper->GetObjectId());
+    if (encoder)
+    {
+        encoder->EncodeUInt32Value(result);
 
         TraceManager::Get()->EndMethodCallTrace(encoder);
     }

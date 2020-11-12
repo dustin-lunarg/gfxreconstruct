@@ -51,6 +51,9 @@ enum ApiCallId : uint32_t
 
     ApiCall_CreateDxgiDevice2               = MakeApiCallId(ApiFamily_Dxgi, 0x1000),
     ApiCall_D3D12CreateDevice               = MakeApiCallId(ApiFamily_D3D12, 0x1000),
+    ApiCall_IUnknown_QueryInterface         = MakeApiCallId(ApiFamily_Dxgi, 0x1001),
+    ApiCall_IUnknown_AddRef                 = MakeApiCallId(ApiFamily_Dxgi, 0x1002),
+    ApiCall_IUnknown_Release                = MakeApiCallId(ApiFamily_Dxgi, 0x1003),
     ApiCall_ID3D12Device_CreateCommandQueue = MakeApiCallId(ApiFamily_D3D12, 0x1001),
     ApiCall_ID3D12CommandQueue_Signal       = MakeApiCallId(ApiFamily_D3D12, 0x1002),
 
