@@ -68,6 +68,8 @@ GFXRECON_BEGIN_NAMESPACE(encode)
 #define MEMORY_TRACKING_MODE_UPPER          "MEMORY_TRACKING_MODE"
 #define CAPTURE_FRAMES_LOWER                "capture_frames"
 #define CAPTURE_FRAMES_UPPER                "CAPTURE_FRAMES"
+#define CAPTURE_SUBMISSIONS_LOWER           "capture_submissions"
+#define CAPTURE_SUBMISSIONS_UPPER           "CAPTURE_SUBMISSIONS"
 #define CAPTURE_TRIGGER_LOWER               "capture_trigger"
 #define CAPTURE_TRIGGER_UPPER               "CAPTURE_TRIGGER"
 #define PAGE_GUARD_COPY_ON_MAP_LOWER        "page_guard_copy_on_map"
@@ -107,6 +109,7 @@ const char kLogOutputToConsoleEnvVar[]        = GFXRECON_ENV_VAR_PREFIX LOG_OUTP
 const char kLogOutputToOsDebugStringEnvVar[]  = GFXRECON_ENV_VAR_PREFIX LOG_OUTPUT_TO_OS_DEBUG_STRING_LOWER;
 const char kMemoryTrackingModeEnvVar[]        = GFXRECON_ENV_VAR_PREFIX MEMORY_TRACKING_MODE_LOWER;
 const char kCaptureFramesEnvVar[]             = GFXRECON_ENV_VAR_PREFIX CAPTURE_FRAMES_LOWER;
+const char kCaptureSubmissionsEnvVar[]        = GFXRECON_ENV_VAR_PREFIX CAPTURE_SUBMISSIONS_LOWER;
 const char kCaptureTriggerEnvVar[]            = GFXRECON_ENV_VAR_PREFIX CAPTURE_TRIGGER_LOWER;
 const char kPageGuardCopyOnMapEnvVar[]        = GFXRECON_ENV_VAR_PREFIX PAGE_GUARD_COPY_ON_MAP_LOWER;
 const char kPageGuardSeparateReadEnvVar[]     = GFXRECON_ENV_VAR_PREFIX PAGE_GUARD_SEPARATE_READ_LOWER;
@@ -138,6 +141,7 @@ const char kLogOutputToConsoleEnvVar[]        = GFXRECON_ENV_VAR_PREFIX LOG_OUTP
 const char kLogOutputToOsDebugStringEnvVar[]  = GFXRECON_ENV_VAR_PREFIX LOG_OUTPUT_TO_OS_DEBUG_STRING_UPPER;
 const char kMemoryTrackingModeEnvVar[]        = GFXRECON_ENV_VAR_PREFIX MEMORY_TRACKING_MODE_UPPER;
 const char kCaptureFramesEnvVar[]             = GFXRECON_ENV_VAR_PREFIX CAPTURE_FRAMES_UPPER;
+const char kCaptureSubmissionsEnvVar[]        = GFXRECON_ENV_VAR_PREFIX CAPTURE_SUBMISSIONS_UPPER;
 const char kPageGuardCopyOnMapEnvVar[]        = GFXRECON_ENV_VAR_PREFIX PAGE_GUARD_COPY_ON_MAP_UPPER;
 const char kPageGuardSeparateReadEnvVar[]     = GFXRECON_ENV_VAR_PREFIX PAGE_GUARD_SEPARATE_READ_UPPER;
 const char kPageGuardPersistentMemoryEnvVar[] = GFXRECON_ENV_VAR_PREFIX PAGE_GUARD_PERSISTENT_MEMORY_UPPER;
@@ -168,6 +172,7 @@ const std::string kOptionKeyLogOutputToConsole        = std::string(kSettingsFil
 const std::string kOptionKeyLogOutputToOsDebugString  = std::string(kSettingsFilter) + std::string(LOG_OUTPUT_TO_OS_DEBUG_STRING_LOWER);
 const std::string kOptionKeyMemoryTrackingMode        = std::string(kSettingsFilter) + std::string(MEMORY_TRACKING_MODE_LOWER);
 const std::string kOptionKeyCaptureFrames             = std::string(kSettingsFilter) + std::string(CAPTURE_FRAMES_LOWER);
+const std::string kOptionKeyCaptureSubmissions        = std::string(kSettingsFilter) + std::string(CAPTURE_SUBMISSIONS_LOWER);
 const std::string kOptionKeyCaptureTrigger            = std::string(kSettingsFilter) + std::string(CAPTURE_TRIGGER_LOWER);
 const std::string kOptionKeyPageGuardCopyOnMap        = std::string(kSettingsFilter) + std::string(PAGE_GUARD_COPY_ON_MAP_LOWER);
 const std::string kOptionKeyPageGuardSeparateRead     = std::string(kSettingsFilter) + std::string(PAGE_GUARD_SEPARATE_READ_LOWER);
@@ -253,6 +258,7 @@ void CaptureSettings::LoadOptionsEnvVar(OptionsMap* options)
 
     // Trimming environment variables
     LoadSingleOptionEnvVar(options, kCaptureFramesEnvVar, kOptionKeyCaptureFrames);
+    LoadSingleOptionEnvVar(options, kCaptureSubmissionsEnvVar, kOptionKeyCaptureSubmissions);
     LoadSingleOptionEnvVar(options, kCaptureTriggerEnvVar, kOptionKeyCaptureTrigger);
 
     // Page guard environment variables
@@ -309,7 +315,9 @@ void CaptureSettings::ProcessOptions(OptionsMap* options, CaptureSettings* setti
     // trim ranges and trim hotkey are exclusive
     // with trim key will be parsed only
     // if trim ranges is empty, else it will be ignored
-    ParseTrimRangeString(FindOption(options, kOptionKeyCaptureFrames), &settings->trace_settings_.trim_ranges);
+    ParseTrimFrameRangeString(FindOption(options, kOptionKeyCaptureFrames), &settings->trace_settings_.trim_ranges);
+    ParseTrimSubmissionRangeString(FindOption(options, kOptionKeyCaptureSubmissions),
+                                   &settings->trace_settings_.trim_submission_ranges);
     std::string trim_key_option = FindOption(options, kOptionKeyCaptureTrigger);
     if (!trim_key_option.empty())
     {
@@ -508,8 +516,8 @@ util::Log::Severity CaptureSettings::ParseLogLevelString(const std::string&  val
     return result;
 }
 
-void CaptureSettings::ParseTrimRangeString(const std::string&                       value_string,
-                                           std::vector<CaptureSettings::TrimRange>* ranges)
+void CaptureSettings::ParseTrimFrameRangeString(const std::string&                       value_string,
+                                                std::vector<CaptureSettings::TrimRange>* ranges)
 {
     assert(ranges != nullptr);
 
@@ -649,6 +657,102 @@ std::string CaptureSettings::ParseTrimKeyString(const std::string& value_string)
         GFXRECON_LOG_WARNING("Settings Loader: Ignoring invalid trim trigger key \"%s\"", trim_key.c_str());
     }
     return trim_key;
+}
+
+void CaptureSettings::ParseTrimSubmissionRangeString(const std::string&          value_string,
+                                                     CaptureSettings::TrimRange* trim_range)
+{
+    assert(trim_range != nullptr);
+
+    if (!value_string.empty())
+    {
+        std::istringstream value_string_input;
+        value_string_input.str(value_string);
+
+        std::string strRange = value_string;
+        // Remove whitespace.
+        strRange.erase(std::remove_if(strRange.begin(), strRange.end(), ::isspace), strRange.end());
+
+        // Split string on '-' delimiter.
+        bool                     invalid = false;
+        std::vector<std::string> values;
+        std::istringstream       range_input;
+        range_input.str(strRange);
+
+        for (std::string value; std::getline(range_input, value, '-');)
+        {
+            if (value.empty())
+            {
+                break;
+            }
+
+            // Check that the value string only contains numbers.
+            size_t count = std::count_if(value.begin(), value.end(), ::isdigit);
+            if (count == value.length())
+            {
+                values.push_back(value);
+            }
+            else
+            {
+                GFXRECON_LOG_WARNING(
+                    "Settings Loader: Ignoring invalid capture submission range \"%s\", which contains "
+                    "non-numeric values",
+                    strRange.c_str());
+                invalid = true;
+                break;
+            }
+        }
+
+        if (!invalid)
+        {
+            if (values.size() == 1)
+            {
+                if (std::count(strRange.begin(), strRange.end(), '-') == 0)
+                {
+                    trim_range->first = std::stoi(values[0]);
+                    trim_range->total = 1;
+                }
+                else
+                {
+                    GFXRECON_LOG_WARNING("Settings Loader: Ignoring invalid capture submission range \"%s\"",
+                                         strRange.c_str());
+                    return;
+                }
+            }
+            else if (values.size() == 2)
+            {
+                trim_range->first = std::stoi(values[0]);
+
+                uint32_t last = std::stoi(values[1]);
+                if (last >= trim_range->first)
+                {
+                    trim_range->total = (last - trim_range->first) + 1;
+                }
+                else
+                {
+                    GFXRECON_LOG_WARNING(
+                        "Settings Loader: Ignoring invalid capture frame submission  \"%s\", where first "
+                        "frame is greater than last frame",
+                        strRange.c_str());
+                    return;
+                }
+            }
+            else
+            {
+                GFXRECON_LOG_WARNING("Settings Loader: Ignoring invalid capture frame range \"%s\"", strRange.c_str());
+                return;
+            }
+
+            // Check for invalid start frame of 0.
+            if (trim_range->first == 0)
+            {
+                GFXRECON_LOG_WARNING(
+                    "Settings Loader: Ignoring invalid capture frame range \"%s\", with first frame equal to zero",
+                    strRange.c_str());
+                return;
+            }
+        }
+    }
 }
 
 GFXRECON_END_NAMESPACE(encode)

@@ -281,6 +281,7 @@ class TraceManager
 
     void EndApiCallTrace(ParameterEncoder* encoder);
 
+    void EndQueueSubmission();
     void EndFrame();
 
     void CheckContinueCaptureForWriteMode();
@@ -681,6 +682,7 @@ class TraceManager
                                                           pSubmits[i].pSignalSemaphores);
             }
         }
+        EndQueueSubmission();
     }
 
     void PostProcess_vkUpdateDescriptorSets(VkDevice,
@@ -939,8 +941,11 @@ class TraceManager
         return thread_data_.get();
     }
 
-    std::string CreateTrimFilename(const std::string& base_filename, const CaptureSettings::TrimRange& trim_range);
+    std::string CreateTrimFilename(const std::string&                base_filename,
+                                   const CaptureSettings::TrimRange& trim_range,
+                                   const CaptureSettings::TrimRange& trim_submission_range);
     bool        CreateCaptureFile(const std::string& base_filename);
+    void        ProcessTrimming();
     void        ActivateTrimming();
 
     void WriteFileHeader();
@@ -1002,9 +1007,11 @@ class TraceManager
     std::set<DeviceMemoryWrapper*>                  mapped_memory_; // Track mapped memory for unassisted tracking mode.
     bool                                            trim_enabled_;
     std::vector<CaptureSettings::TrimRange>         trim_ranges_;
+    CaptureSettings::TrimRange                      trim_submission_ranges_;
     std::string                                     trim_key_;
     size_t                                          trim_current_range_;
     uint32_t                                        current_frame_;
+    uint32_t                                        current_submission_;
     std::unique_ptr<VulkanStateTracker>             state_tracker_;
     CaptureMode                                     capture_mode_;
     HardwareBufferMap                               hardware_buffers_;

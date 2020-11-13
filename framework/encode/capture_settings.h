@@ -63,6 +63,7 @@ class CaptureSettings
         bool                   force_flush{ false };
         MemoryTrackingMode     memory_tracking_mode{ kPageGuard };
         std::vector<TrimRange> trim_ranges;
+        TrimRange              trim_submission_ranges;
         std::string            trim_key;
         bool                   page_guard_copy_on_map{ util::PageGuardManager::kDefaultEnableCopyOnMap };
         bool                   page_guard_separate_read{ util::PageGuardManager::kDefaultEnableSeparateRead };
@@ -113,7 +114,9 @@ class CaptureSettings
 
     static util::Log::Severity ParseLogLevelString(const std::string& value_string, util::Log::Severity default_value);
 
-    static void ParseTrimRangeString(const std::string& value_string, std::vector<CaptureSettings::TrimRange>* ranges);
+    static void ParseTrimFrameRangeString(const std::string& strRange, std::vector<CaptureSettings::TrimRange>* ranges);
+
+    static void ParseTrimSubmissionRangeString(const std::string& value_string, CaptureSettings::TrimRange* trim_range);
 
     static std::string ParseTrimKeyString(const std::string& value_string);
 
