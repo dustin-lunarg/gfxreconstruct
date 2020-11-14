@@ -73,7 +73,7 @@ void CreateWrappedObject(typename T::WrappedType** object)
 }
 
 template <typename T>
-void GetOrCreateWrappedObject(typename T::WrappedType** object)
+bool GetOrCreateWrappedObject(typename T::WrappedType** object)
 {
     if ((object != nullptr) && (*object != nullptr))
     {
@@ -89,15 +89,19 @@ void GetOrCreateWrappedObject(typename T::WrappedType** object)
             wrapper->AddRefInternal();
 
             (*object) = reinterpret_cast<T::WrappedType*>(wrapper);
+            return true;
         }
         else
         {
             CreateWrappedObject<T>(object);
+            return true;
         }
     }
+
+    return false;
 }
 
-void GetOrCreateWrappedObject(REFIID riid, void** object);
+bool GetOrCreateWrappedObject(REFIID riid, void** object);
 
 // Forward declarations for encode function declarations.
 class IUnknown_Wrapper;
@@ -150,6 +154,7 @@ class IUnknown_Wrapper : public IUnknown
 
         auto result = object_->QueryInterface(riid, ppvObject);
 
+        bool is_wrapped = false;
         if (SUCCEEDED(result) && (ppvObject != nullptr))
         {
             // PROTOTYPE: If the retrieved object matches the wrapped object, return the current wrapper.  There is an
@@ -177,7 +182,13 @@ class IUnknown_Wrapper : public IUnknown
             }
         }
 
-        gfxrecon::encode::Encode_IUnknown_QueryInterface(this, result, riid, ppvObject);
+        // PROTOTYPE: For testing purposes, we will ignore objects that were not wrapped.  For the case where an object
+        // could not be wrapped, a value such as kInvalidHandle could be encodeded in the file to alert replay that an
+        // unrecongized object type was retrieved.
+        if ((ppvObject == nullptr) || is_wrapped)
+        {
+            gfxrecon::encode::Encode_IUnknown_QueryInterface(this, result, riid, ppvObject);
+        }
 
         gfxrecon::encode::CustomEncoderPostCall<gfxrecon::format::ApiCallId::ApiCall_IUnknown_QueryInterface>::Dispatch(
             gfxrecon::encode::TraceManager::Get(), this, result, riid, ppvObject);
@@ -1149,7 +1160,7 @@ class IDXGIFactory6_Wrapper : public IDXGIFactory5_Wrapper
 std::mutex                                        IDXGIFactory6_Wrapper::active_wrappers_lock_;
 std::unordered_map<void*, IDXGIFactory6_Wrapper*> IDXGIFactory6_Wrapper::active_wrappers_;
 
-void GetOrCreateWrappedObject(REFIID riid, void** object)
+bool GetOrCreateWrappedObject(REFIID riid, void** object)
 {
     if (IsEqualIID(riid, IID_ID3D12Device) || IsEqualIID(riid, IID_ID3D12Device1))
     {
@@ -1157,15 +1168,15 @@ void GetOrCreateWrappedObject(REFIID riid, void** object)
         // class version that is different than the version specified by riid, QueryInterface could be used to
         // confirm that the pointers retrieved for both class versions match.  If there is a mismatch,
         // promotion to the latest version would be skipped.
-        GetOrCreateWrappedObject<ID3D12Device1_Wrapper>(reinterpret_cast<ID3D12Device1**>(object));
+        return GetOrCreateWrappedObject<ID3D12Device1_Wrapper>(reinterpret_cast<ID3D12Device1**>(object));
     }
     else if (IsEqualIID(riid, IID_ID3D12Fence))
     {
-        GetOrCreateWrappedObject<ID3D12Fence_Wrapper>(reinterpret_cast<ID3D12Fence**>(object));
+        return GetOrCreateWrappedObject<ID3D12Fence_Wrapper>(reinterpret_cast<ID3D12Fence**>(object));
     }
     else if (IsEqualIID(riid, IID_ID3D12CommandQueue))
     {
-        GetOrCreateWrappedObject<ID3D12CommandQueue_Wrapper>(reinterpret_cast<ID3D12CommandQueue**>(object));
+        return GetOrCreateWrappedObject<ID3D12CommandQueue_Wrapper>(reinterpret_cast<ID3D12CommandQueue**>(object));
     }
     if (IsEqualIID(riid, IID_IDXGIFactory6) || IsEqualIID(riid, IID_IDXGIFactory5) ||
         IsEqualIID(riid, IID_IDXGIFactory4) || IsEqualIID(riid, IID_IDXGIFactory3) ||
@@ -1176,11 +1187,12 @@ void GetOrCreateWrappedObject(REFIID riid, void** object)
         // class version that is different than the version specified by riid, QueryInterface could be used to
         // confirm that the pointers retrieved for both class versions match.  If there is a mismatch,
         // promotion to the latest version would be skipped.
-        GetOrCreateWrappedObject<IDXGIFactory6_Wrapper>(reinterpret_cast<IDXGIFactory6**>(object));
+        return GetOrCreateWrappedObject<IDXGIFactory6_Wrapper>(reinterpret_cast<IDXGIFactory6**>(object));
     }
     else
     {
         // Raise/report error
+        return false;
     }
 }
 

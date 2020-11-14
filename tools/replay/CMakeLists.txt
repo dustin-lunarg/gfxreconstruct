@@ -25,14 +25,16 @@ add_executable(gfxrecon-replay "")
 target_sources(gfxrecon-replay
                PRIVATE
                     ${CMAKE_CURRENT_LIST_DIR}/replay_settings.h
+                    ${CMAKE_CURRENT_LIST_DIR}/dx12_consumer.h
                     ${CMAKE_CURRENT_LIST_DIR}/dx12_decoder.h
                     ${CMAKE_CURRENT_LIST_DIR}/dx12_decoder.cpp
+                    ${CMAKE_CURRENT_LIST_DIR}/dx12_struct_decoders.h
                     ${CMAKE_CURRENT_LIST_DIR}/desktop_main.cpp
 )
 
 target_include_directories(gfxrecon-replay PUBLIC ${CMAKE_BINARY_DIR})
 
-target_link_libraries(gfxrecon-replay gfxrecon_application gfxrecon_decode gfxrecon_format gfxrecon_util platform_specific)
+target_link_libraries(gfxrecon-replay gfxrecon_application gfxrecon_decode gfxrecon_format gfxrecon_util platform_specific d3d12.lib)
 
 common_build_directives(gfxrecon-replay)
 

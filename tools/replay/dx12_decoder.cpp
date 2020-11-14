@@ -16,6 +16,8 @@
 
 #include "dx12_decoder.h"
 
+#include "dx12_consumer.h"
+#include "dx12_struct_decoders.h"
 #include "decode/pointer_decoder.h"
 #include "decode/handle_pointer_decoder.h"
 #include "decode/struct_pointer_decoder.h"
@@ -42,14 +44,6 @@ static size_t DecodeIID(const uint8_t* parameter_buffer, size_t buffer_size, IID
 
     return bytes_read;
 }
-
-// Struct decoding type and function declaration.
-struct Decoded_D3D12_COMMAND_QUEUE_DESC
-{
-    using struct_type = D3D12_COMMAND_QUEUE_DESC;
-
-    D3D12_COMMAND_QUEUE_DESC* decoded_value{ nullptr };
-};
 
 size_t DecodeStruct(const uint8_t* buffer, size_t buffer_size, Decoded_D3D12_COMMAND_QUEUE_DESC* wrapper)
 {
@@ -133,6 +127,7 @@ size_t Dx12Decoder::Decode_D3D12CreateDevice(const uint8_t* parameter_buffer, si
 
     for (auto consumer : consumers_)
     {
+        consumer->Process_D3D12CreateDevice(result, pAdapter, MinimumFeatureLevel, riid, &ppDevice);
     }
 
     // NOTE: These return values are left over from an earlier design and are unnecessary.
@@ -155,6 +150,7 @@ size_t Dx12Decoder::Decode_IUnknown_QueryInterface(format::HandleId object_id,
 
     for (auto consumer : consumers_)
     {
+        consumer->Process_IUnknown_QueryInterface(object_id);
     }
 
     return bytes_read;
@@ -169,6 +165,11 @@ Dx12Decoder::Decode_IUnknown_AddRef(format::HandleId object_id, const uint8_t* p
 
     bytes_read += ValueDecoder::DecodeUInt32Value((parameter_buffer + bytes_read), (buffer_size - bytes_read), &count);
 
+    for (auto consumer : consumers_)
+    {
+        consumer->Process_IUnknown_AddRef(object_id, count);
+    }
+
     return bytes_read;
 }
 
@@ -180,6 +181,11 @@ Dx12Decoder::Decode_IUnknown_Release(format::HandleId object_id, const uint8_t* 
     uint32_t count = 0;
 
     bytes_read += ValueDecoder::DecodeUInt32Value((parameter_buffer + bytes_read), (buffer_size - bytes_read), &count);
+
+    for (auto consumer : consumers_)
+    {
+        consumer->Process_IUnknown_Release(object_id, count);
+    }
 
     return bytes_read;
 }
@@ -200,6 +206,11 @@ size_t Dx12Decoder::Decode_ID3D12Device_CreateCommandQueue(format::HandleId obje
     bytes_read += ppCommandQueue.Decode((parameter_buffer + bytes_read), (buffer_size - bytes_read));
     bytes_read += ValueDecoder::DecodeInt32Value((parameter_buffer + bytes_read), (buffer_size - bytes_read), &result);
 
+    for (auto consumer : consumers_)
+    {
+        consumer->Process_ID3D12Device_CreateCommandQueue(object_id, result, &pDesc, riid, &ppCommandQueue);
+    }
+
     return bytes_read;
 }
 
@@ -217,6 +228,11 @@ size_t Dx12Decoder::Decode_ID3D12CommandQueue_Signal(format::HandleId object_id,
         ValueDecoder::DecodeHandleIdValue((parameter_buffer + bytes_read), (buffer_size - bytes_read), &pFence);
     bytes_read += ValueDecoder::DecodeUInt64Value((parameter_buffer + bytes_read), (buffer_size - bytes_read), &Value);
     bytes_read += ValueDecoder::DecodeInt32Value((parameter_buffer + bytes_read), (buffer_size - bytes_read), &result);
+
+    for (auto consumer : consumers_)
+    {
+        consumer->Process_ID3D12CommandQueue_Signal(object_id, result, pFence, Value);
+    }
 
     return bytes_read;
 }
