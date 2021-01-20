@@ -55,6 +55,10 @@ class PageGuardManager
     typedef std::function<void(uint64_t, void*, size_t, size_t)> ModifiedMemoryFunc;
 
   public:
+    static bool InitializeWriteWatch();
+
+    static bool RequireCustomExternalMemoryAlloc();
+
     static void Create(bool enable_copy_on_map, bool enable_separate_read, bool expect_read_write_same_page);
 
     static void Destroy();
@@ -194,6 +198,7 @@ class PageGuardManager
     void   MemoryCopy(void* destination, const void* source, size_t size);
     bool   FindMemory(void* address, MemoryInfo** watched_memory_info);
     bool   SetMemoryProtection(void* protect_address, size_t protect_size, uint32_t protect_mask);
+    bool   SetWatchRange(void* aligned_address, size_t aligned_size);
     void   LoadActiveWriteStates(MemoryInfo* memory_info);
     void   ProcessEntry(uint64_t memory_id, MemoryInfo* memory_info, const ModifiedMemoryFunc& handle_modified);
     void   ProcessActiveRange(uint64_t                  memory_id,

@@ -195,10 +195,11 @@ static void PageGuardExceptionHandler(int id, siginfo_t* info, void* data)
     }
 }
 
-const char   kClearDirtyPteValue = '4';
-const size_t kPageMapEntrySize   = 8;
-static int   s_pagemap_file      = -1;
-static int   s_clear_file        = -1;
+const char   kClearDirtyPteValue   = '4';
+const size_t kPageMapEntrySize     = 8;
+const size_t kPageMapEntryPotShift = 3;
+static int   s_pagemap_file        = -1;
+static int   s_clear_file          = -1;
 
 static bool InitWriteWatch()
 {
@@ -270,6 +271,20 @@ PageGuardManager::~PageGuardManager()
     }
 
     ReleaseWriteWatch();
+}
+
+bool PageGuardManager::InitializeWriteWatch()
+{
+    return InitWriteWatch();
+}
+
+bool PageGuardManager::RequireCustomExternalMemoryAlloc()
+{
+#if defined(WIN32)
+    return true;
+#else
+    return true;
+#endif
 }
 
 void PageGuardManager::Create(bool enable_copy_on_map, bool enable_separate_read, bool expect_read_write_same_page)
@@ -354,30 +369,9 @@ void* PageGuardManager::AllocateMemory(size_t aligned_size, bool use_write_watch
 #else
         memory = mmap(nullptr, aligned_size, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
 
-        if (memory && use_write_watch && InitWriteWatch())
+        if (use_write_watch)
         {
-            assert(s_clear_file != -1);
-
-            char     buffer[17];
-            auto     addr       = reinterpret_cast<uintptr_t>(memory);
-            auto     start_addr = static_cast<uint64_t>(addr);
-            uint64_t end_addr   = start_addr + aligned_size;
-
-            buffer[0] = '6';
-            memcpy(&buffer[1], &start_addr, sizeof(start_addr));
-            memcpy(&buffer[9], &end_addr, sizeof(end_addr));
-
-            if (lseek(s_clear_file, 0, SEEK_SET) != -1)
-            {
-                if (write(s_clear_file, buffer, 17) != 17)
-                {
-                    GFXRECON_LOG_ERROR("Write failed when setting soft-dirty page range (errno = %d)", errno);
-                }
-            }
-            else
-            {
-                GFXRECON_LOG_ERROR("Seek failed when setting soft-dirty page range (errno = %d)", errno);
-            }
+            SetWatchRange(memory, aligned_size);
         }
 #endif
     }
@@ -573,6 +567,45 @@ bool PageGuardManager::SetMemoryProtection(void* protect_address, size_t protect
     return success;
 }
 
+bool PageGuardManager::SetWatchRange(void* aligned_address, size_t aligned_size)
+{
+    bool success = true;
+
+#if !defined(WIN32)
+    if (s_clear_file != -1)
+    {
+        char     buffer[17];
+        uint64_t start_addr = reinterpret_cast<uintptr_t>(aligned_address);
+        uint64_t end_addr   = start_addr + aligned_size;
+
+        buffer[0] = '6';
+        memcpy(&buffer[1], &start_addr, sizeof(start_addr));
+        memcpy(&buffer[9], &end_addr, sizeof(end_addr));
+
+        if (lseek(s_clear_file, 0, SEEK_SET) != -1)
+        {
+            if (write(s_clear_file, buffer, sizeof(buffer)) != sizeof(buffer))
+            {
+                GFXRECON_LOG_ERROR("Write failed when setting soft-dirty page range (errno = %d)", errno);
+                success = false;
+            }
+        }
+        else
+        {
+            GFXRECON_LOG_ERROR("Seek failed when setting soft-dirty page range (errno = %d)", errno);
+            success = false;
+        }
+    }
+    else
+    {
+        GFXRECON_LOG_ERROR("Failed to set soft-dirty page range due to initialization failure");
+        success = false;
+    }
+#endif
+
+    return success;
+}
+
 void PageGuardManager::LoadActiveWriteStates(MemoryInfo* memory_info)
 {
     assert((memory_info != nullptr) && (memory_info->shadow_memory == nullptr));
@@ -617,23 +650,23 @@ void PageGuardManager::LoadActiveWriteStates(MemoryInfo* memory_info)
     assert(s_pagemap_file != -1);
 
     // TODO: Some of these calculations can be done once at map time.
-    size_t start_location =
-        (reinterpret_cast<uintptr_t>(memory_info->aligned_address) >> system_page_pot_shift_) * kPageMapEntrySize;
+    size_t start_location = (reinterpret_cast<uintptr_t>(memory_info->aligned_address) >> system_page_pot_shift_)
+                            << kPageMapEntryPotShift;
 
     if (lseek(s_pagemap_file, static_cast<off_t>(start_location), SEEK_SET) != -1)
     {
         auto   modified_addresses = memory_info->pagemap_entries.get();
-        size_t entries_size       = memory_info->total_pages * kPageMapEntrySize;
+        size_t entries_size       = memory_info->total_pages << kPageMapEntryPotShift;
 
         modified_addresses[0] = reinterpret_cast<uintptr_t>(memory_info->aligned_address) +
-                                GetAlignedSize(memory_info->mapped_range + memory_info->aligned_offset);
+                                (memory_info->total_pages << system_page_pot_shift_);
 
         auto result = read(s_pagemap_file, modified_addresses, entries_size);
         if (result > 0)
         {
             memory_info->is_modified = true;
 
-            size_t modified_count = result / kPageMapEntrySize;
+            size_t modified_count = result >> kPageMapEntryPotShift;
             for (size_t i = 0; i < modified_count; ++i)
             {
                 // Get offset from the page-aligned start address of the mapped memory to the address of the modified
@@ -881,14 +914,6 @@ void* PageGuardManager::AddTrackedMemory(uint64_t  memory_id,
     }
     else
     {
-        if (use_write_watch && !InitWriteWatch())
-        {
-            // Only supported on Windows and Linux systems with /proc/pagemap_reset.
-            use_write_watch = false;
-            GFXRECON_LOG_WARNING("PageGuardManager::AddTrackedMemory() disabled write watch for mapped memory tracking "
-                                 "due to lack of support from the current platform")
-        }
-
         // Align the mapped memory pointer to the start of its page.
         aligned_address = AlignToPageStart(mapped_memory);
         aligned_offset  = GetOffsetFromPageStart(mapped_memory);
@@ -974,6 +999,10 @@ void* PageGuardManager::AddTrackedMemory(uint64_t  memory_id,
             {
                 success = SetMemoryProtection(aligned_address, guard_range, kGuardReadOnlyProtect);
             }
+        }
+        else if (!RequireCustomExternalMemoryAlloc())
+        {
+            success = SetWatchRange(aligned_address, total_pages << system_page_pot_shift_);
         }
 
         if (success)
