@@ -319,6 +319,8 @@ class TraceManager
                                     const VkAllocationCallbacks* pAllocator,
                                     VkDeviceMemory*              pMemory);
 
+    VkResult OverrideQueueSubmit(VkQueue queue, uint32_t submitCount, const VkSubmitInfo* pSubmits, VkFence fence);
+
     VkResult OverrideGetPhysicalDeviceToolPropertiesEXT(VkPhysicalDevice                   physicalDevice,
                                                         uint32_t*                          pToolCount,
                                                         VkPhysicalDeviceToolPropertiesEXT* pToolProperties);

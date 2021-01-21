@@ -374,12 +374,7 @@ VKAPI_ATTR VkResult VKAPI_CALL QueueSubmit(
 {
     CustomEncoderPreCall<format::ApiCallId::ApiCall_vkQueueSubmit>::Dispatch(TraceManager::Get(), queue, submitCount, pSubmits, fence);
 
-    auto handle_unwrap_memory = TraceManager::Get()->GetHandleUnwrapMemory();
-    VkQueue queue_unwrapped = GetWrappedHandle<VkQueue>(queue);
-    const VkSubmitInfo* pSubmits_unwrapped = UnwrapStructArrayHandles(pSubmits, submitCount, handle_unwrap_memory);
-    VkFence fence_unwrapped = GetWrappedHandle<VkFence>(fence);
-
-    VkResult result = GetDeviceTable(queue)->QueueSubmit(queue_unwrapped, submitCount, pSubmits_unwrapped, fence_unwrapped);
+    VkResult result = TraceManager::Get()->OverrideQueueSubmit(queue, submitCount, pSubmits, fence);
 
     auto encoder = TraceManager::Get()->BeginApiCallTrace(format::ApiCallId::ApiCall_vkQueueSubmit);
     if (encoder)

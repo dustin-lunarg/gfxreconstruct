@@ -4,6 +4,7 @@
     "vkCreateDevice": "TraceManager::Get()->OverrideCreateDevice",
     "vkCreateBuffer": "TraceManager::Get()->OverrideCreateBuffer",
     "vkAllocateMemory": "TraceManager::Get()->OverrideAllocateMemory",
+    "vkQueueSubmit": "TraceManager::Get()->OverrideQueueSubmit",
     "vkGetPhysicalDeviceToolPropertiesEXT": "TraceManager::Get()->OverrideGetPhysicalDeviceToolPropertiesEXT"
   }
 }

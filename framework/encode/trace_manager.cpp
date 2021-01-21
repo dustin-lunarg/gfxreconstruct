@@ -1552,6 +1552,32 @@ VkResult TraceManager::OverrideAllocateMemory(VkDevice                     devic
     return result;
 }
 
+VkResult
+TraceManager::OverrideQueueSubmit(VkQueue queue, uint32_t submitCount, const VkSubmitInfo* pSubmits, VkFence fence)
+{
+    VkQueue queue_unwrapped = GetWrappedHandle<VkQueue>(queue);
+    VkFence fence_unwrapped = GetWrappedHandle<VkFence>(fence);
+
+    auto                handle_unwrap_memory = TraceManager::Get()->GetHandleUnwrapMemory();
+    const VkSubmitInfo* pSubmits_unwrapped   = UnwrapStructArrayHandles(pSubmits, submitCount, handle_unwrap_memory);
+
+    VkResult result =
+        GetDeviceTable(queue)->QueueSubmit(queue_unwrapped, submitCount, pSubmits_unwrapped, fence_unwrapped);
+
+    if ((memory_tracking_mode_ == CaptureSettings::MemoryTrackingMode::kPageGuard) &&
+        (page_guard_memory_mode_ == kMemoryModeExternal))
+    {
+        util::PageGuardManager* manager = util::PageGuardManager::Get();
+        assert(manager != nullptr);
+
+        manager->ProcessMemoryEntries([this](uint64_t memory_id, void* start_address, size_t offset, size_t size) {
+            WriteFillMemoryCmd(memory_id, offset, size, start_address);
+        });
+    }
+
+    return result;
+}
+
 VkResult TraceManager::OverrideGetPhysicalDeviceToolPropertiesEXT(VkPhysicalDevice                   physicalDevice,
                                                                   uint32_t*                          pToolCount,
                                                                   VkPhysicalDeviceToolPropertiesEXT* pToolProperties)
@@ -2278,12 +2304,15 @@ void TraceManager::PreProcess_vkQueueSubmit(VkQueue             queue,
 
     if (memory_tracking_mode_ == CaptureSettings::MemoryTrackingMode::kPageGuard)
     {
-        util::PageGuardManager* manager = util::PageGuardManager::Get();
-        assert(manager != nullptr);
+        if (page_guard_memory_mode_ != kMemoryModeExternal)
+        {
+            util::PageGuardManager* manager = util::PageGuardManager::Get();
+            assert(manager != nullptr);
 
-        manager->ProcessMemoryEntries([this](uint64_t memory_id, void* start_address, size_t offset, size_t size) {
-            WriteFillMemoryCmd(memory_id, offset, size, start_address);
-        });
+            manager->ProcessMemoryEntries([this](uint64_t memory_id, void* start_address, size_t offset, size_t size) {
+                WriteFillMemoryCmd(memory_id, offset, size, start_address);
+            });
+        }
     }
     else if (memory_tracking_mode_ == CaptureSettings::MemoryTrackingMode::kUnassisted)
     {
